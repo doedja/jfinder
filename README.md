@@ -1,36 +1,42 @@
 # JFinder
 
-A smart research paper finder and downloader. AI-powered discovery meets automated retrieval.
+A smart research tool with two powerful modes: **Paper Finder** for discovering and downloading research papers, and **Gap Analysis** for identifying unexplored research opportunities.
 
 ## Features
 
+### Paper Finder Mode
 - **Smart Search** - AI-powered query generation using LLM to find relevant papers
-- **Multi-Source Downloads** - Downloads from Sci-Hub and Anna's Archive with fallback
+- **Multi-Source Downloads** - Parallel downloads from OpenAlex, Unpaywall, Sci-Hub, and LibGen
 - **Bulk Processing** - Upload DOI lists to process multiple papers at once
 - **Auto-Broadening** - Automatically expands search when results are limited
 - **Rich Metadata** - Captures authors, journals, years, and DOIs
-- **Real-time Progress** - Server-Sent Events for live progress updates
+
+### Gap Analysis Mode
+- **Research Gap Detection** - AI identifies unexplored areas in your field
+- **Literature Comparison** - Analyzes existing research to find opportunities
+- **Smart Recommendations** - Suggests potential research directions
+- **Exportable Reports** - Download comprehensive gap analysis reports
 
 ## Tech Stack
 
 - **Framework**: [Astro](https://astro.build/) with SSR
-- **Runtime**: [Bun](https://bun.sh/)
+- **Runtime**: [Bun](https://bun.sh/) / Node.js
 - **Language**: TypeScript
-- **APIs**: Scopus (search), OpenRouter (LLM)
+- **APIs**: OpenAlex (free), Scopus (optional), OpenRouter (LLM)
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) v1.0+
-- [Scopus API Key](https://dev.elsevier.com/)
-- [OpenRouter API Key](https://openrouter.ai/keys)
+- [Bun](https://bun.sh/) v1.0+ or Node.js
+- [OpenRouter API Key](https://openrouter.ai/keys) (required)
+- [Scopus API Key](https://dev.elsevier.com/) (optional - falls back to OpenAlex)
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/jfinder.git
+   git clone https://github.com/doedja/jfinder.git
    cd jfinder
    ```
 
@@ -46,8 +52,8 @@ A smart research paper finder and downloader. AI-powered discovery meets automat
 
 4. Edit `.env` and add your API keys:
    ```env
-   SCOPUS_API_KEY=your_scopus_key
    OPENROUTER_API_KEY=sk-or-v1-your_key
+   # Optional: SCOPUS_API_KEY=your_scopus_key
    ```
 
 5. Start development server:
@@ -81,7 +87,6 @@ docker-compose up -d
 ```bash
 docker build -t jfinder .
 docker run -d -p 3000:3000 \
-  -e SCOPUS_API_KEY=your_key \
   -e OPENROUTER_API_KEY=your_key \
   jfinder
 ```
@@ -91,14 +96,15 @@ docker run -d -p 3000:3000 \
 1. Connect your GitHub repository to Coolify
 2. Select "Docker" as build method
 3. Add environment variables in Coolify UI:
-   - `SCOPUS_API_KEY`
-   - `OPENROUTER_API_KEY`
+   - `OPENROUTER_API_KEY` (required)
+   - `SCOPUS_API_KEY` (optional)
    - Other optional variables from `.env.example`
 4. Configure persistent storage for `/app/downloads`
 5. Deploy
 
 ## API Endpoints
 
+### Paper Finder
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/search` | POST | Start a search task |
@@ -106,17 +112,37 @@ docker run -d -p 3000:3000 \
 | `/api/download/[taskId]/[type]` | GET | Download results (zip/metadata) |
 | `/api/metadata/[taskId]` | GET | Get search metadata |
 
+### Gap Analysis
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/analyze-gaps` | POST | Start gap analysis |
+| `/api/gap-progress/[taskId]` | GET | SSE stream for gap analysis |
+| `/api/gap-results/[taskId]` | GET | Get gap analysis results |
+| `/api/gap-report/[taskId]` | GET | Download gap analysis report |
+
 ## Configuration
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `SCOPUS_API_KEY` | Yes | - | Elsevier Scopus API key |
-| `OPENROUTER_API_KEY` | Yes | - | OpenRouter API key |
+| `OPENROUTER_API_KEY` | Yes | - | OpenRouter API key for LLM |
 | `OPENROUTER_MODEL` | No | `meta-llama/llama-3.3-70b-instruct` | LLM model to use |
+| `SCOPUS_API_KEY` | No | - | Elsevier Scopus API key (falls back to OpenAlex) |
+| `ANNAS_API_KEY` | No | - | Anna's Archive API key (adds extra download source) |
+| `RAPIDAPI_KEY` | No | - | RapidAPI key for Anna's Archive |
 | `PROXY_URL` | No | - | WebShare.io proxy list URL |
 | `DOWNLOAD_DIR` | No | `./downloads` | Directory for downloads |
 | `TASK_TTL_MS` | No | `3600000` | Task cleanup time (1 hour) |
 | `MAX_UPLOAD_SIZE` | No | `16777216` | Max upload size (16MB) |
+
+## Download Sources
+
+Papers are downloaded from multiple sources in parallel for speed and reliability:
+
+- **OpenAlex** - Open Access URLs (free, no key)
+- **Unpaywall** - Legal OA links (free, no key)
+- **Sci-Hub** - Research papers (free, no key)
+- **LibGen** - Library Genesis (free, no key)
+- **Anna's Archive** - Optional, requires API key
 
 ## License
 
