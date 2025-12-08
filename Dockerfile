@@ -18,8 +18,8 @@ RUN bun run build
 FROM base AS runtime
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 astro
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs astro
 
 # Copy built assets
 COPY --from=build --chown=astro:nodejs /app/dist ./dist
