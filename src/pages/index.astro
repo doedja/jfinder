@@ -177,7 +177,6 @@ import GapResults from '../components/GapResults.astro';
 
   /* Content Wrapper */
   .content-wrapper {
-    flex: 1;
     position: relative;
   }
 
@@ -282,10 +281,14 @@ import GapResults from '../components/GapResults.astro';
   /* Results Areas */
   .results-area,
   .gap-results-area {
-    margin-top: var(--space-xl);
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
+  }
+
+  .results-area:has(.visible),
+  .gap-results-area:has(.active) {
+    margin-top: var(--space-xl);
   }
 
   /* Footer */
