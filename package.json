@@ -9,7 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "deploy": "git add -A && git commit -m \"deploy: update\""
+    "deploy": "git add -A && git commit -m \"deploy: update\" && git push"
   },
   "devDependencies": {
     "@types/bun": "latest",
