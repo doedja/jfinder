@@ -1,0 +1,520 @@
+---
+
+---
+
+<form id="searchForm" class="search-form">
+  <div class="form-section">
+    <div class="input-group input-group-topic">
+      <label for="topic">Research Topic</label>
+      <input
+        type="text"
+        id="topic"
+        name="topic"
+        placeholder="e.g., machine learning in drug discovery"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="divider">
+      <span class="divider-text">or</span>
+    </div>
+
+    <div class="input-group input-group-file">
+      <label for="doiFile">DOI List File</label>
+      <div class="file-input-wrapper">
+        <input
+          type="file"
+          id="doiFile"
+          name="doiFile"
+          accept=".txt"
+          class="file-input"
+        />
+        <label for="doiFile" class="file-input-label">
+          <span class="file-icon">↑</span>
+          <span class="file-text">Choose .txt file</span>
+        </label>
+        <span class="file-name" id="fileName"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section form-options">
+    <div class="options-row">
+      <div class="input-group input-group-small">
+        <label for="cycles">Search Cycles</label>
+        <input
+          type="number"
+          id="cycles"
+          name="cycles"
+          value="3"
+          min="1"
+          max="20"
+        />
+      </div>
+
+      <div class="input-group input-group-small">
+        <label for="papers">Max Papers</label>
+        <input
+          type="number"
+          id="papers"
+          name="papers"
+          value="20"
+          min="1"
+          max="250"
+        />
+      </div>
+
+      <div class="input-group input-group-small">
+        <label for="yearFilter">Year Filter</label>
+        <input
+          type="text"
+          id="yearFilter"
+          name="yearFilter"
+          placeholder="e.g., 2020-2024"
+        />
+      </div>
+    </div>
+
+    <div class="download-options">
+      <span class="options-label">Download Mode</span>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="downloadType" value="full" checked />
+          <span class="radio-custom"></span>
+          <span class="radio-label">Full Download</span>
+          <span class="radio-hint">Papers + Metadata</span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="downloadType" value="metadata" />
+          <span class="radio-custom"></span>
+          <span class="radio-label">Metadata Only</span>
+          <span class="radio-hint">Faster, no PDFs</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Validation error message -->
+  <div id="formError" class="form-error" style="display: none;">
+    <span class="error-icon">!</span>
+    <span class="error-text"></span>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary btn-submit">
+      <span class="btn-content">
+        <span class="btn-text">Start Search</span>
+        <span class="btn-icon">→</span>
+      </span>
+      <span class="btn-loader">
+        <span class="spinner"></span>
+      </span>
+    </button>
+  </div>
+</form>
+
+<style>
+  .search-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .input-group input[type="text"],
+  .input-group input[type="number"] {
+    background: var(--color-bg);
+  }
+
+  .input-group-topic input {
+    font-size: 1.125rem;
+    padding: var(--space-lg);
+  }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--color-text-muted);
+  }
+
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+  }
+
+  .divider-text {
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* File input */
+  .file-input-wrapper {
+    position: relative;
+  }
+
+  .file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .file-input-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--color-bg);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .file-input-label:hover {
+    border-color: var(--color-accent);
+    background: var(--color-bg-warm);
+  }
+
+  .file-input:focus + .file-input-label {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.1);
+  }
+
+  .file-icon {
+    font-size: 1.25rem;
+    color: var(--color-accent);
+  }
+
+  .file-text {
+    color: var(--color-text-secondary);
+  }
+
+  .file-name {
+    display: none;
+    margin-top: var(--space-sm);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+
+  .file-name.active {
+    display: block;
+  }
+
+  /* Options */
+  .form-options {
+    padding: var(--space-lg);
+    background: var(--color-bg-warm);
+    border-radius: var(--radius-lg);
+  }
+
+  .options-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+
+  @media (max-width: 600px) {
+    .options-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .input-group-small input {
+    padding: var(--space-sm) var(--space-md);
+    text-align: center;
+  }
+
+  .download-options {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .options-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-md);
+  }
+
+  .radio-group {
+    display: flex;
+    gap: var(--space-lg);
+  }
+
+  @media (max-width: 480px) {
+    .radio-group {
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .radio-option input {
+    position: absolute;
+    opacity: 0;
+  }
+
+  .radio-custom {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    margin-top: 2px;
+    position: relative;
+  }
+
+  .radio-option input:checked + .radio-custom {
+    border-color: var(--color-accent);
+  }
+
+  .radio-option input:checked + .radio-custom::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: var(--color-accent);
+    border-radius: 50%;
+  }
+
+  .radio-option input:focus + .radio-custom {
+    box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.1);
+  }
+
+  .radio-label {
+    font-weight: 500;
+    color: var(--color-text);
+    display: block;
+  }
+
+  .radio-hint {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    display: block;
+  }
+
+  /* Form error */
+  .form-error {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: rgba(155, 68, 68, 0.1);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-md);
+    color: var(--color-error);
+    font-size: 0.9375rem;
+    animation: slideUpFadeIn 0.3s ease;
+  }
+
+  .form-error .error-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: var(--color-error);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  @keyframes slideUpFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Submit button */
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn-submit {
+    padding: var(--space-md) var(--space-xl);
+    font-size: 1rem;
+  }
+
+  .btn-submit .btn-content .btn-icon {
+    transition: transform var(--transition-fast);
+  }
+
+  .btn-submit:hover .btn-content .btn-icon {
+    transform: translateX(4px);
+  }
+
+  .btn-submit:disabled {
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  const form = document.getElementById('searchForm') as HTMLFormElement;
+  const topicInput = document.getElementById('topic') as HTMLInputElement;
+  const fileInput = document.getElementById('doiFile') as HTMLInputElement;
+  const fileNameSpan = document.getElementById('fileName') as HTMLSpanElement;
+  const cyclesInput = document.getElementById('cycles') as HTMLInputElement;
+  const papersInput = document.getElementById('papers') as HTMLInputElement;
+  const formError = document.getElementById('formError') as HTMLDivElement;
+  const errorText = formError?.querySelector('.error-text') as HTMLSpanElement;
+
+  // Show error message
+  function showError(message: string) {
+    if (formError && errorText) {
+      errorText.textContent = message;
+      formError.style.display = 'flex';
+      // Re-trigger animation
+      formError.style.animation = 'none';
+      formError.offsetHeight; // Trigger reflow
+      formError.style.animation = '';
+    }
+  }
+
+  // Hide error message
+  function hideError() {
+    if (formError) {
+      formError.style.display = 'none';
+    }
+  }
+
+  // File input handling
+  fileInput?.addEventListener('change', () => {
+    hideError();
+    if (fileInput.files && fileInput.files[0]) {
+      fileNameSpan.textContent = `Selected: ${fileInput.files[0].name}`;
+      fileNameSpan.classList.add('active');
+      topicInput.value = '';
+      topicInput.disabled = true;
+    } else {
+      fileNameSpan.textContent = '';
+      fileNameSpan.classList.remove('active');
+      topicInput.disabled = false;
+    }
+  });
+
+  // Topic input clears file
+  topicInput?.addEventListener('input', () => {
+    hideError();
+    if (topicInput.value) {
+      fileInput.value = '';
+      fileNameSpan.textContent = '';
+      fileNameSpan.classList.remove('active');
+    }
+  });
+
+  // Clamp values
+  cyclesInput?.addEventListener('change', () => {
+    const val = parseInt(cyclesInput.value);
+    if (val < 1) cyclesInput.value = '1';
+    if (val > 20) cyclesInput.value = '20';
+  });
+
+  papersInput?.addEventListener('change', () => {
+    const val = parseInt(papersInput.value);
+    if (val < 1) papersInput.value = '1';
+    if (val > 250) papersInput.value = '250';
+  });
+
+  // Form submission
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+
+    const topic = topicInput.value.trim();
+    const file = fileInput.files?.[0];
+
+    if (!topic && !file) {
+      showError('Please enter a research topic or upload a DOI file');
+      return;
+    }
+
+    const submitBtn = form.querySelector('.btn-submit') as HTMLButtonElement;
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+
+    try {
+      const formData = new FormData(form);
+
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Search failed');
+      }
+
+      // Dispatch custom event with task ID
+      window.dispatchEvent(new CustomEvent('searchStarted', {
+        detail: { taskId: data.taskId }
+      }));
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Search failed');
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+    }
+  });
+
+  // Listen for reset event to re-enable form
+  window.addEventListener('searchReset', () => {
+    const submitBtn = form?.querySelector('.btn-submit') as HTMLButtonElement;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+    }
+    hideError();
+    // Reset form fields
+    topicInput.disabled = false;
+    fileNameSpan.textContent = '';
+    fileNameSpan.classList.remove('active');
+  });
+</script>

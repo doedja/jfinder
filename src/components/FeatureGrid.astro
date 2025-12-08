@@ -1,0 +1,121 @@
+---
+const features = [
+  {
+    icon: '◎',
+    title: 'Smart Search',
+    description: 'AI-powered query generation finds relevant papers efficiently'
+  },
+  {
+    icon: '⊞',
+    title: 'Bulk Processing',
+    description: 'Upload DOI lists to process multiple papers at once'
+  },
+  {
+    icon: '↻',
+    title: 'Auto-Broadening',
+    description: 'Automatically expands search when results are limited'
+  },
+  {
+    icon: '↓',
+    title: 'Multi-Source',
+    description: 'Downloads from Sci-Hub and Anna\'s Archive'
+  },
+  {
+    icon: '≡',
+    title: 'Rich Metadata',
+    description: 'Captures authors, journals, years, and DOIs'
+  },
+  {
+    icon: '◇',
+    title: 'Open Source',
+    description: 'Free and transparent research tool'
+  }
+];
+---
+
+<section class="features">
+  <div class="features-header">
+    <span class="features-label">Capabilities</span>
+  </div>
+  <div class="features-grid">
+    {features.map((feature, index) => (
+      <article class="feature-card animate-slide-up" style={`animation-delay: ${index * 50 + 200}ms`}>
+        <span class="feature-icon">{feature.icon}</span>
+        <h3 class="feature-title">{feature.title}</h3>
+        <p class="feature-description">{feature.description}</p>
+      </article>
+    ))}
+  </div>
+</section>
+
+<style>
+  .features {
+    padding: var(--space-xl) 0;
+  }
+
+  .features-header {
+    margin-bottom: var(--space-lg);
+  }
+
+  .features-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+
+  @media (max-width: 768px) {
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .feature-card {
+    padding: var(--space-lg);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    opacity: 0;
+  }
+
+  .feature-card:hover {
+    border-color: var(--color-border);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .feature-icon {
+    display: block;
+    font-size: 1.5rem;
+    color: var(--color-accent);
+    margin-bottom: var(--space-sm);
+    font-family: var(--font-display);
+  }
+
+  .feature-title {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+  }
+
+  .feature-description {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+</style>

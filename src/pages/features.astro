@@ -1,0 +1,114 @@
+---
+import Layout from '../layouts/Layout.astro';
+import UnifiedCapabilities from '../components/UnifiedCapabilities.astro';
+---
+
+<Layout title="JFinder — Features">
+  <main class="main">
+    <header class="header">
+      <div class="header-inner container">
+        <a href="/" class="header-brand">
+          <span class="brand-symbol">◈</span>
+          <span class="brand-name">JFinder</span>
+        </a>
+      </div>
+    </header>
+
+    <div class="content container">
+      <div class="page-header">
+        <a href="/" class="back-link">← Back to JFinder</a>
+        <h1 class="page-title">Features</h1>
+        <p class="page-subtitle">Explore all features available in JFinder</p>
+      </div>
+
+      <div class="capabilities-wrapper">
+        <UnifiedCapabilities />
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .main {
+    min-height: 100vh;
+    background: var(--color-bg);
+  }
+
+  .header {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+  }
+
+  .brand-symbol {
+    font-size: 1.5rem;
+    color: var(--color-accent);
+  }
+
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--color-text);
+  }
+
+  .content {
+    padding: var(--space-2xl) 0 var(--space-3xl);
+  }
+
+  .page-header {
+    margin-bottom: var(--space-xl);
+  }
+
+  .back-link {
+    display: inline-block;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    margin-bottom: var(--space-md);
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-accent);
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    color: var(--color-text);
+    margin-bottom: var(--space-sm);
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+  }
+
+  .capabilities-wrapper {
+    max-width: 900px;
+  }
+</style>
+
+<script>
+  // Auto-expand capabilities on this page
+  document.addEventListener('DOMContentLoaded', () => {
+    const section = document.querySelector('.capabilities-section');
+    const toggle = document.querySelector('.capabilities-toggle');
+    if (section && !section.classList.contains('expanded')) {
+      section.classList.add('expanded');
+      toggle?.setAttribute('aria-expanded', 'true');
+    }
+  });
+</script>

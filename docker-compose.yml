@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  jfinder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jfinder
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      - NODE_ENV=production
+      - DOWNLOAD_DIR=/app/downloads
+      - SCOPUS_API_KEY=${SCOPUS_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct}
+      - PROXY_URL=${PROXY_URL:-}
+      - ANNAS_API_KEY=${ANNAS_API_KEY:-}
+      - TASK_TTL_MS=${TASK_TTL_MS:-3600000}
+      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE:-16777216}
+    volumes:
+      - jfinder-downloads:/app/downloads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  jfinder-downloads:
+    driver: local

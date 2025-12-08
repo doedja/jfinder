@@ -1,0 +1,376 @@
+---
+
+---
+
+<section id="progressSection" class="progress-section flow-section">
+  <!-- Progress View -->
+  <div id="progressView" class="progress-view">
+    <h3 class="progress-title">Search in Progress</h3>
+
+    <div class="progress-hero">
+      <div class="progress-bar-wrapper">
+        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+      </div>
+      <span id="progressPercent" class="progress-percent">0%</span>
+    </div>
+
+    <p id="progressMessage" class="progress-message">Initializing...</p>
+    <p class="progress-cycle">Cycle <span id="currentCycle">0</span> of <span id="totalCycles">0</span></p>
+
+    <div class="progress-stats">
+      <span class="stat-item"><span id="papersFound" class="stat-value">0</span> found</span>
+      <span class="stat-dot">·</span>
+      <span class="stat-item"><span id="papersDownloaded" class="stat-value">0</span> downloaded</span>
+    </div>
+  </div>
+
+  <!-- Error View -->
+  <div id="errorView" class="error-view" style="display: none;">
+    <div class="error-display">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h3 class="error-title">Something went wrong</h3>
+      <p id="errorMessage" class="error-message">An error occurred during the search.</p>
+      <button id="retryBtn" class="btn btn-primary">Try Again</button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .progress-section {
+    padding: var(--space-lg) var(--space-md);
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 3px rgba(26, 24, 20, 0.04);
+    text-align: center;
+  }
+
+  .progress-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .progress-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  /* Progress bar as hero element */
+  .progress-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: 350px;
+  }
+
+  .progress-bar-wrapper {
+    flex: 1;
+    height: 8px;
+    background: var(--color-bg-warm);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 4px;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+
+  .progress-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .progress-percent {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    color: var(--color-accent);
+    min-width: 3rem;
+    text-align: right;
+  }
+
+  /* Status messages */
+  .progress-message {
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .progress-cycle {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  /* Inline stats */
+  .progress-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border-light);
+  }
+
+  .stat-item {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  .stat-value {
+    font-weight: 600;
+    color: var(--color-text);
+    transition: color 0.3s ease;
+  }
+
+  .stat-value.updated {
+    color: var(--color-accent);
+  }
+
+  .stat-dot {
+    color: var(--color-text-muted);
+    font-size: 0.625rem;
+  }
+
+  /* Complete state */
+  .progress-section.complete .progress-bar::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .progress-section.complete .progress-message {
+    color: var(--color-success);
+  }
+
+  /* Error state */
+  .progress-section.error .progress-bar {
+    background: var(--color-error);
+  }
+
+  /* Error view */
+  .error-view {
+    padding: var(--space-sm) 0;
+  }
+
+  .error-view .error-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .error-view .error-icon {
+    width: 40px;
+    height: 40px;
+    color: var(--color-error);
+  }
+
+  .error-view .error-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .error-view .error-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .error-view .error-message {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+    max-width: 300px;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .progress-hero {
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .progress-percent {
+      text-align: center;
+    }
+
+    .progress-stats {
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .stat-dot {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  let eventSource: EventSource | null = null;
+  let lastValues = { papersFound: 0, papersDownloaded: 0 };
+
+  function showSection() {
+    const section = document.getElementById('progressSection') as HTMLElement;
+    section.classList.add('visible');
+  }
+
+  function hideSection() {
+    const section = document.getElementById('progressSection') as HTMLElement;
+    section.classList.remove('visible');
+  }
+
+  function showProgressView() {
+    const progressView = document.getElementById('progressView') as HTMLElement;
+    const errorView = document.getElementById('errorView') as HTMLElement;
+    progressView.style.display = 'flex';
+    errorView.style.display = 'none';
+  }
+
+  function showErrorView(message: string) {
+    const progressView = document.getElementById('progressView') as HTMLElement;
+    const errorView = document.getElementById('errorView') as HTMLElement;
+    const errorMessage = document.getElementById('errorMessage') as HTMLElement;
+
+    progressView.style.display = 'none';
+    errorView.style.display = 'block';
+    errorMessage.textContent = message;
+  }
+
+  function pulseValue(element: HTMLElement) {
+    element.classList.add('updated');
+    setTimeout(() => element.classList.remove('updated'), 500);
+  }
+
+  function startProgress(taskId: string) {
+    const section = document.getElementById('progressSection') as HTMLElement;
+    const progressBar = document.getElementById('progressBar') as HTMLElement;
+    const progressPercent = document.getElementById('progressPercent') as HTMLElement;
+    const progressMessage = document.getElementById('progressMessage') as HTMLElement;
+    const currentCycle = document.getElementById('currentCycle') as HTMLElement;
+    const totalCycles = document.getElementById('totalCycles') as HTMLElement;
+    const papersFound = document.getElementById('papersFound') as HTMLElement;
+    const papersDownloaded = document.getElementById('papersDownloaded') as HTMLElement;
+
+    // Reset and show section
+    section.classList.remove('error', 'complete');
+    showProgressView();
+    showSection();
+
+    // Reset values
+    progressBar.style.width = '0%';
+    progressPercent.textContent = '0%';
+    progressMessage.textContent = 'Connecting...';
+    lastValues = { papersFound: 0, papersDownloaded: 0 };
+
+    // Close existing connection
+    if (eventSource) {
+      eventSource.close();
+    }
+
+    // Connect to SSE endpoint
+    eventSource = new EventSource(`/api/progress/${taskId}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.error) {
+          showErrorView(data.error);
+          eventSource?.close();
+          return;
+        }
+
+        // Update UI
+        progressBar.style.width = `${data.progress}%`;
+        progressPercent.textContent = `${data.progress}%`;
+        progressMessage.textContent = data.message;
+        currentCycle.textContent = data.currentCycle || '0';
+        totalCycles.textContent = data.totalCycles || '0';
+
+        // Update stats with highlight
+        const newPapersFound = parseInt(data.papersFound) || 0;
+        const newPapersDownloaded = parseInt(data.papersDownloaded) || 0;
+
+        if (newPapersFound !== lastValues.papersFound) {
+          papersFound.textContent = String(newPapersFound);
+          pulseValue(papersFound);
+          lastValues.papersFound = newPapersFound;
+        }
+
+        if (newPapersDownloaded !== lastValues.papersDownloaded) {
+          papersDownloaded.textContent = String(newPapersDownloaded);
+          pulseValue(papersDownloaded);
+          lastValues.papersDownloaded = newPapersDownloaded;
+        }
+
+        if (data.status === 'complete') {
+          section.classList.add('complete');
+          eventSource?.close();
+
+          // Dispatch completion event
+          window.dispatchEvent(new CustomEvent('searchComplete', {
+            detail: {
+              taskId,
+              downloadUrl: data.downloadUrl,
+              metadataUrl: data.metadataUrl
+            }
+          }));
+        }
+
+        if (data.status === 'error') {
+          showErrorView(data.error || 'An error occurred');
+          eventSource?.close();
+        }
+      } catch (e) {
+        console.error('Failed to parse progress data:', e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      showErrorView('Connection lost. Please try again.');
+      eventSource?.close();
+    };
+  }
+
+  function resetProgress() {
+    hideSection();
+    window.dispatchEvent(new CustomEvent('searchReset'));
+  }
+
+  // Retry button
+  const retryBtn = document.getElementById('retryBtn');
+  retryBtn?.addEventListener('click', resetProgress);
+
+  // Listen for search started event
+  window.addEventListener('searchStarted', ((event: CustomEvent) => {
+    startProgress(event.detail.taskId);
+  }) as EventListener);
+
+  // Listen for reset request
+  window.addEventListener('progressReset', () => {
+    hideSection();
+  });
+</script>

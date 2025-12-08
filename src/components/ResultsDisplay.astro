@@ -1,0 +1,302 @@
+---
+
+---
+
+<section id="resultsSection" class="results-section flow-section">
+  <!-- Loading State -->
+  <div id="resultsLoading" class="loading-overlay">
+    <span class="spinner spinner-lg"></span>
+    <span>Preparing your files...</span>
+  </div>
+
+  <!-- Results Content -->
+  <div id="resultsContent" class="results-inner" style="display: none;">
+    <!-- Success Hero -->
+    <div class="success-hero">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M8 12l2.5 2.5L16 9"/>
+        </svg>
+      </div>
+      <h2 class="success-title"><span id="paperCount">0</span> Papers Ready</h2>
+    </div>
+
+    <!-- Primary Action -->
+    <div class="primary-action">
+      <a id="downloadZip" href="#" class="btn btn-primary btn-large" style="display: none;">
+        Download All (ZIP)
+      </a>
+    </div>
+
+    <!-- Secondary Actions -->
+    <div class="secondary-actions">
+      <a id="downloadMetadata" href="#" class="text-link">
+        Download metadata only
+      </a>
+      <button id="toggleDetails" class="text-link">
+        View details
+      </button>
+    </div>
+
+    <!-- Collapsible Details -->
+    <div id="detailsPanel" class="details-panel">
+      <pre id="metadataContent" class="metadata-content"></pre>
+    </div>
+
+    <!-- New Search -->
+    <button id="newSearch" class="new-search-link">
+      ← Start new search
+    </button>
+  </div>
+</section>
+
+<style>
+  .results-section {
+    padding: var(--space-lg) var(--space-md);
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 3px rgba(26, 24, 20, 0.04);
+    text-align: center;
+  }
+
+  .results-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  /* Success Hero */
+  .success-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .success-icon {
+    width: 44px;
+    height: 44px;
+    color: var(--color-success);
+  }
+
+  .success-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .success-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  /* Primary Action */
+  .primary-action {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .btn-large {
+    width: 100%;
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 0.9375rem;
+  }
+
+  /* Secondary Actions */
+  .secondary-actions {
+    display: flex;
+    gap: var(--space-md);
+  }
+
+  .text-link {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+    text-decoration: none;
+  }
+
+  .text-link:hover {
+    color: var(--color-accent);
+  }
+
+  /* Details Panel */
+  .details-panel {
+    width: 100%;
+    max-width: 450px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+  }
+
+  .details-panel.expanded {
+    max-height: 250px;
+    padding-top: var(--space-sm);
+  }
+
+  .metadata-content {
+    text-align: left;
+    padding: var(--space-sm);
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+  }
+
+  /* New Search Link */
+  .new-search-link {
+    margin-top: var(--space-xs);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border-light);
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+  }
+
+  .new-search-link:hover {
+    color: var(--color-accent);
+  }
+
+  /* Loading state */
+  .results-section .loading-overlay {
+    min-height: 150px;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .secondary-actions {
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+  }
+</style>
+
+<script>
+  const resultsSection = document.getElementById('resultsSection') as HTMLElement;
+  const resultsLoading = document.getElementById('resultsLoading') as HTMLElement;
+  const resultsContent = document.getElementById('resultsContent') as HTMLElement;
+  const downloadZip = document.getElementById('downloadZip') as HTMLAnchorElement;
+  const downloadMetadata = document.getElementById('downloadMetadata') as HTMLAnchorElement;
+  const metadataContent = document.getElementById('metadataContent') as HTMLPreElement;
+  const toggleDetails = document.getElementById('toggleDetails') as HTMLButtonElement;
+  const detailsPanel = document.getElementById('detailsPanel') as HTMLDivElement;
+  const paperCount = document.getElementById('paperCount') as HTMLSpanElement;
+  const newSearchBtn = document.getElementById('newSearch') as HTMLButtonElement;
+
+  function showSection() {
+    resultsSection.classList.add('visible');
+  }
+
+  function hideSection() {
+    resultsSection.classList.remove('visible');
+  }
+
+  function showLoading() {
+    resultsLoading.style.display = 'flex';
+    resultsContent.style.display = 'none';
+  }
+
+  function showContent() {
+    resultsLoading.style.display = 'none';
+    resultsContent.style.display = 'flex';
+  }
+
+  // Toggle details visibility
+  toggleDetails?.addEventListener('click', () => {
+    const isExpanded = detailsPanel.classList.toggle('expanded');
+    toggleDetails.textContent = isExpanded ? 'Hide details' : 'View details';
+  });
+
+  // New search button
+  newSearchBtn?.addEventListener('click', () => {
+    hideSection();
+
+    // Dispatch reset events
+    window.dispatchEvent(new CustomEvent('progressReset'));
+    window.dispatchEvent(new CustomEvent('searchReset'));
+
+    // Reset form
+    const form = document.getElementById('searchForm') as HTMLFormElement;
+    if (form) form.reset();
+
+    // Reset details panel
+    detailsPanel?.classList.remove('expanded');
+    if (toggleDetails) toggleDetails.textContent = 'View details';
+  });
+
+  // Listen for search complete event
+  window.addEventListener('searchComplete', (async (event: CustomEvent) => {
+    const { taskId, downloadUrl, metadataUrl } = event.detail;
+
+    // Show results section with loading state
+    showLoading();
+    showSection();
+
+    // Set download URLs
+    if (downloadUrl) {
+      downloadZip.href = downloadUrl;
+      downloadZip.style.display = 'inline-flex';
+    } else {
+      downloadZip.style.display = 'none';
+    }
+
+    if (metadataUrl) {
+      downloadMetadata.href = metadataUrl;
+    }
+
+    // Fetch and display metadata
+    try {
+      const response = await fetch(`/api/metadata/${taskId}`);
+      if (response.ok) {
+        const text = await response.text();
+        metadataContent.textContent = text;
+
+        // Try to extract paper count from metadata
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (line.toLowerCase().includes('downloaded:') || line.toLowerCase().includes('papers:')) {
+            const match = line.match(/(\d+)/);
+            if (match) {
+              paperCount.textContent = match[1];
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      metadataContent.textContent = 'Failed to load metadata';
+    }
+
+    // Show content after loading
+    showContent();
+
+    // Dispatch reset event to re-enable form
+    window.dispatchEvent(new CustomEvent('searchReset'));
+  }) as EventListener);
+
+  // Listen for reset
+  window.addEventListener('resultsReset', () => {
+    hideSection();
+  });
+</script>

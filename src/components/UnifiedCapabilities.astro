@@ -1,0 +1,471 @@
+---
+// UnifiedCapabilities - Collapsible section showing both Paper Finder and Gap Analysis features
+---
+
+<div class="capabilities-section">
+  <button class="capabilities-header capabilities-toggle" type="button" aria-expanded="false">
+    <span class="header-content">
+      <span class="header-label">Capabilities</span>
+      <span class="header-divider"></span>
+      <span class="header-hint">12 features across both modes</span>
+    </span>
+    <span class="header-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M5 8L10 13L15 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+  </button>
+
+  <div class="capabilities-content">
+    <div class="capabilities-inner">
+      <!-- Paper Finder Features -->
+      <div class="feature-group">
+        <div class="group-header">
+          <span class="group-icon">↓</span>
+          <span class="group-title">Paper Finder</span>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <span class="feature-icon">◎</span>
+            <div class="feature-text">
+              <span class="feature-title">Smart Search</span>
+              <span class="feature-desc">AI-powered query generation finds relevant papers</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">⊞</span>
+            <div class="feature-text">
+              <span class="feature-title">Bulk Processing</span>
+              <span class="feature-desc">Upload DOI lists to process multiple papers</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">↻</span>
+            <div class="feature-text">
+              <span class="feature-title">Auto-Broadening</span>
+              <span class="feature-desc">Automatically expands limited searches</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">⇣</span>
+            <div class="feature-text">
+              <span class="feature-title">Multi-Source</span>
+              <span class="feature-desc">Downloads from Sci-Hub and Anna's Archive</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">≡</span>
+            <div class="feature-text">
+              <span class="feature-title">Rich Metadata</span>
+              <span class="feature-desc">Captures authors, journals, years, and DOIs</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">◇</span>
+            <div class="feature-text">
+              <span class="feature-title">Open Source</span>
+              <span class="feature-desc">Free and transparent research tool</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="group-divider">
+        <span class="divider-line"></span>
+        <span class="divider-text">+</span>
+        <span class="divider-line"></span>
+      </div>
+
+      <!-- Gap Analysis Features -->
+      <div class="feature-group">
+        <div class="group-header">
+          <span class="group-icon gap-icon">◈</span>
+          <span class="group-title">Gap Analysis</span>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <span class="feature-icon gap-accent">◇</span>
+            <div class="feature-text">
+              <span class="feature-title">Gap Detection</span>
+              <span class="feature-desc">Find under-researched areas automatically</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon gap-accent">◆</span>
+            <div class="feature-text">
+              <span class="feature-title">Methodology Compare</span>
+              <span class="feature-desc">Analyze different research approaches</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon gap-accent">↗</span>
+            <div class="feature-text">
+              <span class="feature-title">Research Directions</span>
+              <span class="feature-desc">AI-suggested research opportunities</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon gap-accent">⊕</span>
+            <div class="feature-text">
+              <span class="feature-title">Trend Analysis</span>
+              <span class="feature-desc">Publication patterns over time</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon gap-accent">⬡</span>
+            <div class="feature-text">
+              <span class="feature-title">Smart Clustering</span>
+              <span class="feature-desc">Group related papers by topics</span>
+            </div>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon gap-accent">⟡</span>
+            <div class="feature-text">
+              <span class="feature-title">Citation Insights</span>
+              <span class="feature-desc">Understand research impact patterns</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .capabilities-section {
+    margin-bottom: var(--space-lg);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .capabilities-section {
+    background: var(--color-gap-surface);
+    border-color: var(--color-gap-border);
+  }
+
+  /* Header */
+  .capabilities-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: all 0.2s ease;
+  }
+
+  .capabilities-header:hover {
+    background: var(--color-bg-warm);
+  }
+
+  :global([data-mode="gap"]) .capabilities-header:hover {
+    background: var(--color-gap-bg-deep);
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .header-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-text-secondary);
+    transition: color 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .header-label {
+    color: var(--color-gap-text-secondary);
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--color-border);
+    transition: background 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .header-divider {
+    background: var(--color-gap-border);
+  }
+
+  .header-hint {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    transition: color 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .header-hint {
+    color: var(--color-gap-text-muted);
+  }
+
+  .header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--color-bg-warm);
+    color: var(--color-text-muted);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :global([data-mode="gap"]) .header-icon {
+    background: var(--color-gap-bg-deep);
+    color: var(--color-gap-text-muted);
+  }
+
+  .capabilities-header:hover .header-icon {
+    color: var(--color-accent);
+    background: rgba(139, 90, 43, 0.1);
+  }
+
+  :global([data-mode="gap"]) .capabilities-header:hover .header-icon {
+    color: var(--color-gap-accent);
+    background: rgba(43, 90, 74, 0.1);
+  }
+
+  .capabilities-section.expanded .header-icon {
+    transform: rotate(180deg);
+  }
+
+  /* Content */
+  .capabilities-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .capabilities-section.expanded .capabilities-content {
+    grid-template-rows: 1fr;
+  }
+
+  .capabilities-inner {
+    overflow: hidden;
+    padding: 0 1.25rem;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: all 0.3s ease;
+  }
+
+  .capabilities-section.expanded .capabilities-inner {
+    padding: 0 1.25rem 1.5rem;
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0.1s;
+  }
+
+  /* Feature Groups */
+  .feature-group {
+    margin-bottom: 0;
+  }
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+    padding-top: 0.5rem;
+  }
+
+  .group-icon {
+    font-size: 1.125rem;
+    color: var(--color-accent);
+    transition: color 0.3s ease;
+  }
+
+  .group-icon.gap-icon {
+    color: var(--color-gap-accent);
+  }
+
+  :global([data-mode="gap"]) .group-icon {
+    color: var(--color-gap-accent);
+  }
+
+  .group-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--color-text);
+    transition: color 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .group-title {
+    color: var(--color-gap-text);
+  }
+
+  /* Feature Grid */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 768px) {
+    .feature-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .feature-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Feature Cards */
+  .feature-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+  }
+
+  :global([data-mode="gap"]) .feature-card {
+    background: var(--color-gap-bg);
+    border-color: var(--color-gap-border);
+  }
+
+  .feature-card:hover {
+    border-color: var(--color-border);
+    transform: translateY(-1px);
+  }
+
+  :global([data-mode="gap"]) .feature-card:hover {
+    border-color: var(--color-gap-accent-light);
+  }
+
+  .feature-icon {
+    font-size: 1rem;
+    color: var(--color-accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: color 0.3s ease;
+  }
+
+  .feature-icon.gap-accent {
+    color: var(--color-gap-accent);
+  }
+
+  :global([data-mode="gap"]) .feature-icon {
+    color: var(--color-gap-accent);
+  }
+
+  .feature-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+
+  .feature-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    transition: color 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .feature-title {
+    color: var(--color-gap-text);
+  }
+
+  .feature-desc {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+    transition: color 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .feature-desc {
+    color: var(--color-gap-text-muted);
+  }
+
+  /* Divider */
+  .group-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.25rem 0;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-border) 20%,
+      var(--color-border) 80%,
+      transparent
+    );
+    transition: background 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .divider-line {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-gap-border) 20%,
+      var(--color-gap-border) 80%,
+      transparent
+    );
+  }
+
+  .divider-text {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    font-weight: 300;
+    transition: color 0.3s ease;
+  }
+
+  :global([data-mode="gap"]) .divider-text {
+    color: var(--color-gap-text-muted);
+  }
+</style>
+
+<script>
+  // Handle all capability section instances (there may be multiple on the page)
+  document.querySelectorAll('.capabilities-section').forEach(section => {
+    const toggle = section.querySelector('.capabilities-toggle');
+
+    // Check localStorage for saved state
+    const savedState = localStorage.getItem('jfinder_capabilities_expanded');
+    if (savedState === 'true') {
+      section.classList.add('expanded');
+      toggle?.setAttribute('aria-expanded', 'true');
+    }
+
+    toggle?.addEventListener('click', () => {
+      const isExpanded = section.classList.toggle('expanded');
+      toggle.setAttribute('aria-expanded', String(isExpanded));
+      localStorage.setItem('jfinder_capabilities_expanded', String(isExpanded));
+
+      // Sync all instances to have the same state
+      document.querySelectorAll('.capabilities-section').forEach(s => {
+        if (s !== section) {
+          if (isExpanded) {
+            s.classList.add('expanded');
+            s.querySelector('.capabilities-toggle')?.setAttribute('aria-expanded', 'true');
+          } else {
+            s.classList.remove('expanded');
+            s.querySelector('.capabilities-toggle')?.setAttribute('aria-expanded', 'false');
+          }
+        }
+      });
+    });
+  });
+</script>

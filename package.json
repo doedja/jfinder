@@ -1,0 +1,30 @@
+{
+  "name": "jfinder",
+  "version": "1.0.0",
+  "description": "Smart Research Paper Finder and Downloader",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "deploy": "git add -A && git commit -m"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/uuid": "^10.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.5.1",
+    "astro": "^5.16.4",
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.3",
+    "jszip": "^3.10.1",
+    "uuid": "^13.0.0",
+    "zod": "^4.1.13"
+  }
+}

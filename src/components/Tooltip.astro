@@ -1,0 +1,236 @@
+---
+// Tooltip - Refined help tooltip with smooth reveal animation
+interface Props {
+  content: string;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+}
+
+const { content, position = 'top' } = Astro.props;
+---
+
+<span class="tooltip-trigger" data-position={position}>
+  <span class="tooltip-icon">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M7 6V10M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </span>
+  <span class="tooltip-content" role="tooltip">
+    <span class="tooltip-arrow"></span>
+    <span class="tooltip-text">{content}</span>
+  </span>
+</span>
+
+<style>
+  .tooltip-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: help;
+  }
+
+  .tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-muted, #8a857b);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+  }
+
+  .tooltip-trigger:hover .tooltip-icon {
+    opacity: 1;
+    color: var(--color-accent, #8b5a2b);
+  }
+
+  /* Gap mode colors */
+  :global([data-mode="gap"]) .tooltip-trigger:hover .tooltip-icon {
+    color: var(--color-gap-accent, #2b5a4a);
+  }
+
+  .tooltip-content {
+    position: absolute;
+    z-index: 1000;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+
+  /* Position: Top (default) */
+  .tooltip-trigger[data-position="top"] .tooltip-content {
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  .tooltip-trigger[data-position="top"]:hover .tooltip-content,
+  .tooltip-trigger[data-position="top"]:focus-within .tooltip-content {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .tooltip-trigger[data-position="top"] .tooltip-arrow {
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  /* Position: Bottom */
+  .tooltip-trigger[data-position="bottom"] .tooltip-content {
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+  }
+
+  .tooltip-trigger[data-position="bottom"]:hover .tooltip-content,
+  .tooltip-trigger[data-position="bottom"]:focus-within .tooltip-content {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .tooltip-trigger[data-position="bottom"] .tooltip-arrow {
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  /* Position: Left */
+  .tooltip-trigger[data-position="left"] .tooltip-content {
+    right: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%) translateX(4px);
+  }
+
+  .tooltip-trigger[data-position="left"]:hover .tooltip-content,
+  .tooltip-trigger[data-position="left"]:focus-within .tooltip-content {
+    transform: translateY(-50%) translateX(0);
+  }
+
+  .tooltip-trigger[data-position="left"] .tooltip-arrow {
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  /* Position: Right */
+  .tooltip-trigger[data-position="right"] .tooltip-content {
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+  }
+
+  .tooltip-trigger[data-position="right"]:hover .tooltip-content,
+  .tooltip-trigger[data-position="right"]:focus-within .tooltip-content {
+    transform: translateY(-50%) translateX(0);
+  }
+
+  .tooltip-trigger[data-position="right"] .tooltip-arrow {
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  /* Show on hover/focus */
+  .tooltip-trigger:hover .tooltip-content,
+  .tooltip-trigger:focus-within .tooltip-content {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .tooltip-text {
+    display: block;
+    padding: 0.625rem 0.875rem;
+    background: var(--color-text, #1a1814);
+    color: var(--color-bg, #faf8f5);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 8px;
+    white-space: normal;
+    width: max-content;
+    max-width: 260px;
+    box-shadow:
+      0 4px 16px rgba(26, 24, 20, 0.12),
+      0 1px 3px rgba(26, 24, 20, 0.08);
+  }
+
+  /* Gap mode tooltip styling */
+  :global([data-mode="gap"]) .tooltip-text {
+    background: var(--color-gap-text, #141a18);
+    color: var(--color-gap-bg, #f5f7f5);
+  }
+
+  .tooltip-arrow {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--color-text, #1a1814);
+  }
+
+  :global([data-mode="gap"]) .tooltip-arrow {
+    background: var(--color-gap-text, #141a18);
+  }
+
+  /* Mobile: tap to show */
+  @media (max-width: 768px) {
+    .tooltip-trigger {
+      cursor: pointer;
+    }
+
+    .tooltip-content {
+      position: fixed;
+      left: 50% !important;
+      right: auto !important;
+      top: auto !important;
+      bottom: 20px !important;
+      transform: translateX(-50%) translateY(10px) !important;
+    }
+
+    .tooltip-trigger:hover .tooltip-content,
+    .tooltip-trigger:focus-within .tooltip-content,
+    .tooltip-trigger.active .tooltip-content {
+      transform: translateX(-50%) translateY(0) !important;
+    }
+
+    .tooltip-arrow {
+      display: none;
+    }
+
+    .tooltip-text {
+      max-width: calc(100vw - 40px);
+    }
+  }
+</style>
+
+<script>
+  // Mobile tap support
+  document.querySelectorAll('.tooltip-trigger').forEach(trigger => {
+    trigger.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768) {
+        e.preventDefault();
+
+        // Close all other tooltips
+        document.querySelectorAll('.tooltip-trigger.active').forEach(t => {
+          if (t !== trigger) t.classList.remove('active');
+        });
+
+        trigger.classList.toggle('active');
+      }
+    });
+  });
+
+  // Close tooltip when clicking outside on mobile
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.tooltip-trigger')) {
+        document.querySelectorAll('.tooltip-trigger.active').forEach(t => {
+          t.classList.remove('active');
+        });
+      }
+    }
+  });
+</script>

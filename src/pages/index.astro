@@ -1,0 +1,481 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ModeToggle from '../components/ModeToggle.astro';
+import SearchForm from '../components/SearchForm.astro';
+import ProgressTracker from '../components/ProgressTracker.astro';
+import ResultsDisplay from '../components/ResultsDisplay.astro';
+import GapAnalysisForm from '../components/GapAnalysisForm.astro';
+import GapProgressTracker from '../components/GapProgressTracker.astro';
+import GapResults from '../components/GapResults.astro';
+---
+
+<Layout title="JFinder — Research Paper & Gap Finder">
+  <main class="main" id="main-app" data-mode="download">
+    <!-- Unified Header -->
+    <header class="header">
+      <div class="header-inner container">
+        <div class="header-left">
+          <div class="header-brand">
+            <span class="brand-symbol">◈</span>
+            <span class="brand-name">JFinder</span>
+          </div>
+          <nav class="header-nav">
+            <a href="/features" class="nav-link">Features</a>
+          </nav>
+        </div>
+        <ModeToggle />
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <div class="content-wrapper">
+      <!-- Paper Finder Mode -->
+      <section class="mode-content download-content active" id="download-content">
+        <div class="container">
+          <div class="hero animate-slide-up">
+            <h1 class="hero-title">Find & Download<br/>Research Papers</h1>
+            <p class="hero-subtitle">AI-powered discovery meets automated retrieval</p>
+          </div>
+
+          <div class="search-card card animate-slide-up delay-3">
+            <div class="search-card-header">
+              <span class="search-card-label">Begin Search</span>
+            </div>
+            <div class="search-card-body">
+              <SearchForm />
+            </div>
+          </div>
+
+          <div class="results-area">
+            <ProgressTracker />
+            <ResultsDisplay />
+          </div>
+        </div>
+      </section>
+
+      <!-- Gap Analysis Mode -->
+      <section class="mode-content gap-content" id="gap-content">
+        <div class="container">
+          <div class="hero animate-slide-up">
+            <h1 class="hero-title">Research Gap Finder</h1>
+            <p class="hero-subtitle">AI-powered analysis to identify unexplored areas and discover research opportunities</p>
+          </div>
+
+          <div class="gap-form-card card animate-slide-up delay-2" id="gap-form-card">
+            <div class="gap-form-wrapper">
+              <GapAnalysisForm />
+            </div>
+          </div>
+
+          <div class="gap-results-area">
+            <GapProgressTracker />
+            <GapResults />
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">JFinder</div>
+        <div class="footer-meta">
+          <span class="footer-copyright">© 2024</span>
+          <span class="footer-divider">·</span>
+          <a href="https://jfinder.doedja.com" class="footer-link">jfinder.doedja.com</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+</Layout>
+
+<style>
+  .main {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg);
+    transition: background-color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] {
+    background: var(--color-gap-bg);
+  }
+
+  /* Header */
+  .header {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+    transition: border-color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .header {
+    border-color: var(--color-gap-border);
+  }
+
+  .header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .nav-link {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: var(--color-accent);
+  }
+
+  .main[data-mode="gap"] .nav-link:hover {
+    color: var(--color-gap-accent);
+  }
+
+  .brand-symbol {
+    font-size: 1.5rem;
+    color: var(--color-accent);
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .brand-symbol {
+    color: var(--color-gap-accent);
+  }
+
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--color-text);
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .brand-name {
+    color: var(--color-gap-text);
+  }
+
+  /* Content Wrapper */
+  .content-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  /* Mode Content */
+  .mode-content {
+    display: none;
+    padding: var(--space-2xl) 0 var(--space-3xl);
+  }
+
+  .mode-content.active {
+    display: block;
+    animation: contentFadeIn 0.5s ease;
+  }
+
+  @keyframes contentFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    opacity: 0;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    color: var(--color-text);
+    margin-bottom: var(--space-md);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .hero-title {
+    color: var(--color-gap-text);
+  }
+
+  .hero-subtitle {
+    font-size: 1.0625rem;
+    color: var(--color-text-secondary);
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .hero-subtitle {
+    color: var(--color-gap-text-secondary);
+  }
+
+  /* Cards */
+  .search-card,
+  .gap-form-card {
+    overflow: hidden;
+    opacity: 0;
+    transition: border-color 0.6s ease, box-shadow 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .card {
+    border-color: var(--color-gap-border);
+  }
+
+  .search-card-header {
+    padding: var(--space-md) var(--space-xl);
+    background: var(--color-bg-warm);
+    border-bottom: 1px solid var(--color-border-light);
+    transition: background-color 0.6s ease, border-color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .search-card-header {
+    background: var(--color-gap-bg-deep);
+    border-color: var(--color-gap-border);
+  }
+
+  .search-card-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .search-card-label {
+    color: var(--color-gap-text-secondary);
+  }
+
+  .search-card-body {
+    padding: var(--space-xl);
+  }
+
+  .gap-form-wrapper {
+    padding: var(--space-xl);
+  }
+
+  /* Results Areas */
+  .results-area,
+  .gap-results-area {
+    margin-top: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  /* Footer */
+  .footer {
+    padding: var(--space-lg) 0;
+    margin-top: auto;
+    border-top: 1px solid var(--color-border-light);
+    transition: border-color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .footer {
+    border-color: var(--color-gap-border);
+  }
+
+  .footer-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .footer-brand {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .footer-brand {
+    color: var(--color-gap-text);
+  }
+
+  .footer-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .footer-meta {
+    color: var(--color-gap-text-secondary);
+  }
+
+  .footer-divider {
+    opacity: 0.5;
+  }
+
+  .footer-link {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .footer-link:hover {
+    color: var(--color-accent);
+  }
+
+  .main[data-mode="gap"] .footer-link:hover {
+    color: var(--color-gap-accent);
+  }
+
+  .footer-desc {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    transition: color 0.6s ease;
+  }
+
+  .main[data-mode="gap"] .footer-desc {
+    color: var(--color-gap-text-secondary);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .header {
+      padding: 0.75rem 0;
+    }
+
+    .mode-content {
+      padding: var(--space-xl) 0 var(--space-2xl);
+    }
+
+    .search-card-body,
+    .gap-form-wrapper {
+      padding: var(--space-lg);
+    }
+  }
+</style>
+
+<script>
+  const mainApp = document.getElementById('main-app');
+  const downloadContent = document.getElementById('download-content');
+  const gapContent = document.getElementById('gap-content');
+
+  // Handle mode changes from toggle
+  window.addEventListener('modeChanged', ((e: CustomEvent) => {
+    const { mode } = e.detail;
+    switchMode(mode);
+  }) as EventListener);
+
+  function switchMode(mode: string) {
+    // Update data attribute for CSS transitions
+    mainApp?.setAttribute('data-mode', mode);
+
+    // Switch content visibility
+    if (mode === 'download') {
+      downloadContent?.classList.add('active');
+      gapContent?.classList.remove('active');
+    } else if (mode === 'gap') {
+      gapContent?.classList.add('active');
+      downloadContent?.classList.remove('active');
+      // Show the gap form
+      document.getElementById('gap-form-card')?.classList.add('active');
+    }
+
+    // Update URL without reload
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', mode);
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  // Check URL parameters for initial mode
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialMode = urlParams.get('mode');
+
+  if (initialMode === 'gap') {
+    switchMode('gap');
+    window.dispatchEvent(new CustomEvent('setMode', { detail: { mode: 'gap' } }));
+  }
+
+  // ===================================
+  // Paper Finder Flow Events
+  // ===================================
+
+  window.addEventListener('searchStarted', ((e: CustomEvent) => {
+    // Hide form area focus, progress tracker will show itself
+  }) as EventListener);
+
+  window.addEventListener('searchComplete', ((e: CustomEvent) => {
+    // Progress tracker handles transitioning to results
+  }) as EventListener);
+
+  window.addEventListener('searchReset', () => {
+    // Reset back to form state - handled by individual components
+  });
+
+  window.addEventListener('progressReset', () => {
+    // Reset progress - handled by ProgressTracker
+  });
+
+  // ===================================
+  // Gap Analysis Flow Events
+  // ===================================
+
+  window.addEventListener('gapAnalysisStarted', ((e: CustomEvent) => {
+    // Hide form, show progress
+    document.getElementById('gap-form-card')?.classList.remove('active');
+    document.getElementById('gap-progress-container')?.classList.add('active');
+  }) as EventListener);
+
+  window.addEventListener('gapAnalysisComplete', ((e: CustomEvent) => {
+    // Progress tracker will handle showing results via GapResults component
+  }) as EventListener);
+
+  // Reset from error or new analysis - unified handler
+  window.addEventListener('gapAnalysisReset', () => {
+    document.getElementById('gap-results-container')?.classList.remove('active');
+    document.getElementById('gap-progress-container')?.classList.remove('active');
+    document.getElementById('gap-form-card')?.classList.add('active');
+
+    // Reset form state
+    const form = document.getElementById('gap-analysis-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('gap-submit-btn') as HTMLButtonElement;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+    }
+  });
+
+  // Handle gap analysis errors dispatched from GapResults
+  window.addEventListener('gapAnalysisError', ((e: CustomEvent) => {
+    // Show error in progress tracker
+    const container = document.getElementById('gap-progress-container');
+    if (container) {
+      container.classList.add('error');
+    }
+  }) as EventListener);
+
+  // Legacy event - redirect to new one
+  window.addEventListener('resetGapForm', () => {
+    window.dispatchEvent(new CustomEvent('gapAnalysisReset'));
+  });
+</script>

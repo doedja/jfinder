@@ -1,0 +1,783 @@
+---
+// GapProgressTracker - Enhanced progress tracking with descriptive messages and elapsed timer
+---
+
+<div class="gap-progress-container" id="gap-progress-container">
+  <div class="progress-header">
+    <div class="progress-title-section">
+      <span class="progress-symbol">◈</span>
+      <div class="progress-titles">
+        <h2 class="progress-title">Analyzing Research Gaps</h2>
+        <p class="progress-topic" id="progress-topic">Topic</p>
+      </div>
+    </div>
+    <div class="progress-meta">
+      <div class="elapsed-time" id="elapsed-time">
+        <span class="elapsed-icon">⏱</span>
+        <span class="elapsed-value" id="elapsed-value">0:00</span>
+      </div>
+      <div class="progress-badge" id="progress-stage">Initializing</div>
+    </div>
+  </div>
+
+  <div class="progress-visualization">
+    <!-- Main Progress Ring -->
+    <div class="progress-ring-container">
+      <svg class="progress-ring" viewBox="0 0 120 120">
+        <circle class="progress-ring-bg" cx="60" cy="60" r="54" />
+        <circle class="progress-ring-fill" cx="60" cy="60" r="54" id="progress-ring-fill" />
+      </svg>
+      <div class="progress-ring-center">
+        <span class="progress-percent" id="progress-percent">0</span>
+        <span class="progress-percent-sign">%</span>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card" id="stat-papers-card">
+        <span class="stat-icon">▤</span>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-papers">
+            <span class="stat-loading">Searching...</span>
+          </span>
+          <span class="stat-label">Papers Found</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-gaps-card">
+        <span class="stat-icon">◇</span>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-gaps">
+            <span class="stat-loading">Analyzing...</span>
+          </span>
+          <span class="stat-label">Gaps Identified</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-directions-card">
+        <span class="stat-icon">↗</span>
+        <div class="stat-content">
+          <span class="stat-value" id="stat-directions">
+            <span class="stat-loading">Generating...</span>
+          </span>
+          <span class="stat-label">Directions</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase Timeline - Minimal dots -->
+  <div class="phase-timeline">
+    <div class="phase-dot" data-phase="searching"></div>
+    <div class="phase-line"></div>
+    <div class="phase-dot" data-phase="collecting"></div>
+    <div class="phase-line"></div>
+    <div class="phase-dot" data-phase="analyzing"></div>
+    <div class="phase-line"></div>
+    <div class="phase-dot" data-phase="comparing"></div>
+    <div class="phase-line"></div>
+    <div class="phase-dot" data-phase="generating"></div>
+    <div class="phase-line"></div>
+    <div class="phase-dot" data-phase="complete"></div>
+  </div>
+
+  <!-- Status Message -->
+  <p class="status-text" id="status-text">Initializing analysis...</p>
+
+  <!-- Error View -->
+  <div id="gap-error-view" class="gap-error-view" style="display: none;">
+    <div class="error-display">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h3 class="error-title">Analysis Failed</h3>
+      <p id="gap-error-message" class="error-message">An error occurred during the analysis.</p>
+      <div class="error-actions">
+        <button id="gap-retry-btn" class="btn btn-primary">
+          <span class="btn-icon">↻</span>
+          <span>Try Again</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .gap-progress-container {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    position: relative;
+  }
+
+  .gap-progress-container.active {
+    display: flex;
+    animation: fadeIn 0.5s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Header */
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 2.5rem;
+    gap: 1rem;
+  }
+
+  .progress-title-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .progress-symbol {
+    font-size: 2rem;
+    color: var(--color-gap-accent);
+    animation: symbolPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes symbolPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.95); }
+  }
+
+  .progress-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .progress-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-gap-text);
+    margin: 0;
+  }
+
+  .progress-topic {
+    font-size: 0.9375rem;
+    color: var(--color-gap-text-secondary);
+    margin: 0;
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .progress-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .elapsed-time {
+    display: none;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--color-gap-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .elapsed-time.visible {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .elapsed-icon {
+    font-size: 0.875rem;
+  }
+
+  .progress-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-gap-accent);
+    padding: 0.375rem 0.875rem;
+    background: rgba(43, 90, 74, 0.1);
+    border-radius: 100px;
+  }
+
+  /* Progress Visualization */
+  .progress-visualization {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  /* Progress Ring */
+  .progress-ring-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+
+  .progress-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .progress-ring-bg {
+    fill: none;
+    stroke: var(--color-gap-border);
+    stroke-width: 8;
+  }
+
+  .progress-ring-fill {
+    fill: none;
+    stroke: var(--color-gap-accent);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 339.292;
+    stroke-dashoffset: 339.292;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .progress-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .progress-percent {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--color-gap-text);
+    line-height: 1;
+  }
+
+  .progress-percent-sign {
+    font-size: 1rem;
+    color: var(--color-gap-text-secondary);
+    margin-left: 1px;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    background: var(--color-gap-surface);
+    border: 1px solid var(--color-gap-border);
+    border-radius: var(--radius-lg);
+    min-width: 140px;
+    transition: all 0.3s ease;
+  }
+
+  .stat-card.updated {
+    animation: statPulse 0.5s ease;
+  }
+
+  @keyframes statPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); border-color: var(--color-gap-accent); }
+    100% { transform: scale(1); }
+  }
+
+  .stat-icon {
+    font-size: 1.25rem;
+    color: var(--color-gap-accent);
+  }
+
+  .stat-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-gap-text);
+    line-height: 1;
+    min-height: 1.25rem;
+  }
+
+  .stat-loading {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--color-gap-text-muted);
+    animation: loadingPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes loadingPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  .stat-label {
+    font-size: 0.6875rem;
+    color: var(--color-gap-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Phase Timeline - Minimal dots */
+  .phase-timeline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    max-width: 300px;
+    margin: var(--space-md) 0;
+  }
+
+  .phase-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-gap-border);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .phase-dot.active {
+    background: var(--color-gap-accent);
+    transform: scale(1.3);
+    box-shadow: 0 0 8px rgba(43, 90, 74, 0.4);
+  }
+
+  .phase-dot.complete {
+    background: var(--color-gap-accent);
+  }
+
+  .phase-line {
+    flex: 1;
+    height: 2px;
+    background: var(--color-gap-border);
+    transition: background 0.3s ease;
+  }
+
+  .phase-line.complete {
+    background: var(--color-gap-accent);
+  }
+
+  /* Status Text */
+  .status-text {
+    font-size: 0.9375rem;
+    color: var(--color-gap-text-secondary);
+    text-align: center;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  /* Error State */
+  .gap-progress-container.error .progress-ring-fill {
+    stroke: var(--color-error);
+  }
+
+  .gap-progress-container.error .progress-badge {
+    background: rgba(155, 68, 68, 0.1);
+    color: var(--color-error);
+  }
+
+  .gap-progress-container.error .progress-symbol {
+    animation: none;
+    color: var(--color-error);
+  }
+
+  /* Complete State */
+  .gap-progress-container.complete .progress-symbol {
+    animation: none;
+  }
+
+  .gap-progress-container.complete .elapsed-time {
+    color: var(--color-gap-text-secondary);
+  }
+
+  /* Gap Error View */
+  .gap-error-view {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-gap-bg);
+    z-index: 10;
+  }
+
+  .gap-error-view .error-display {
+    text-align: center;
+    padding: var(--space-xl);
+  }
+
+  .gap-error-view .error-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--space-lg);
+    color: var(--color-error);
+  }
+
+  .gap-error-view .error-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .gap-error-view .error-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-error);
+    margin-bottom: var(--space-sm);
+  }
+
+  .gap-error-view .error-message {
+    color: var(--color-gap-text-secondary);
+    margin-bottom: var(--space-lg);
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .gap-error-view .error-actions {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+  }
+
+  @media (max-width: 640px) {
+    .progress-header {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .progress-meta {
+      flex-direction: row;
+      align-items: center;
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .stats-grid {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .stat-card {
+      width: 100%;
+    }
+
+    .phase-timeline {
+      max-width: 250px;
+    }
+  }
+</style>
+
+<script>
+  let eventSource: EventSource | null = null;
+  let elapsedInterval: number | null = null;
+  let startTime: number | null = null;
+  let currentTopic: string = '';
+
+  // Descriptive messages for each phase
+  const phaseMessages: Record<string, (data: any) => string> = {
+    searching: (data) => `Searching academic databases for "${currentTopic.slice(0, 40)}${currentTopic.length > 40 ? '...' : ''}"...`,
+    collecting: (data) => data.papersFound
+      ? `Found ${data.papersFound} papers, collecting metadata...`
+      : 'Collecting paper metadata...',
+    analyzing: (data) => data.papersFound
+      ? `Analyzing ${data.papersFound} papers for research gaps...`
+      : 'Analyzing research landscape...',
+    comparing: (data) => data.papersFound
+      ? `Comparing methodologies across ${data.papersFound} studies...`
+      : 'Comparing research methodologies...',
+    generating: (data) => data.gapsIdentified
+      ? `Generating recommendations based on ${data.gapsIdentified} identified gaps...`
+      : 'Generating research recommendations...',
+    complete: (data) => {
+      const gaps = data.gapsIdentified || 0;
+      const dirs = data.directionsGenerated || 0;
+      return `Analysis complete! Found ${gaps} gap${gaps !== 1 ? 's' : ''} and ${dirs} research direction${dirs !== 1 ? 's' : ''}.`;
+    }
+  };
+
+  // User-friendly phase labels
+  const phaseLabels: Record<string, string> = {
+    searching: 'Finding Papers',
+    collecting: 'Gathering Data',
+    analyzing: 'Identifying Gaps',
+    comparing: 'Comparing Methods',
+    generating: 'Creating Insights',
+    complete: 'Ready'
+  };
+
+  function formatElapsedTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  function startElapsedTimer() {
+    startTime = Date.now();
+    const elapsedEl = document.getElementById('elapsed-time');
+    const elapsedValue = document.getElementById('elapsed-value');
+
+    // Show timer immediately
+    elapsedEl?.classList.add('visible');
+
+    elapsedInterval = window.setInterval(() => {
+      if (startTime && elapsedValue) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        elapsedValue.textContent = formatElapsedTime(elapsed);
+      }
+    }, 1000);
+  }
+
+  function stopElapsedTimer() {
+    if (elapsedInterval) {
+      clearInterval(elapsedInterval);
+      elapsedInterval = null;
+    }
+  }
+
+  function updateStat(id: string, value: number | null, cardId: string) {
+    const el = document.getElementById(id);
+    const card = document.getElementById(cardId);
+
+    if (!el) return;
+
+    if (value !== null && value > 0) {
+      const currentValue = el.textContent;
+      el.innerHTML = value.toString();
+
+      // Animate if value changed
+      if (currentValue !== value.toString()) {
+        card?.classList.add('updated');
+        setTimeout(() => card?.classList.remove('updated'), 500);
+      }
+    }
+  }
+
+  function updateProgress(data: any) {
+    const percentEl = document.getElementById('progress-percent');
+    const ringFill = document.getElementById('progress-ring-fill');
+    const stageEl = document.getElementById('progress-stage');
+    const statusText = document.getElementById('status-text');
+    const container = document.getElementById('gap-progress-container');
+
+    if (!percentEl || !ringFill || !stageEl || !statusText) return;
+
+    // Update percent
+    const percent = data.progress || 0;
+    percentEl.textContent = percent.toString();
+
+    // Update ring (circumference = 2 * π * 54 ≈ 339.292)
+    const circumference = 339.292;
+    const offset = circumference - (percent / 100) * circumference;
+    ringFill.style.strokeDashoffset = offset.toString();
+
+    // Update stage badge with user-friendly label
+    const status = data.status || 'searching';
+    stageEl.textContent = phaseLabels[status] || data.stage || 'Processing';
+
+    // Update status message with descriptive text
+    const getMessage = phaseMessages[status];
+    if (getMessage) {
+      statusText.textContent = getMessage(data);
+    } else {
+      statusText.textContent = data.stage || 'Processing...';
+    }
+
+    // Update stats
+    updateStat('stat-papers', data.papersFound, 'stat-papers-card');
+    updateStat('stat-gaps', data.gapsIdentified, 'stat-gaps-card');
+    updateStat('stat-directions', data.directionsGenerated, 'stat-directions-card');
+
+    // Update phase timeline
+    updatePhaseTimeline(status);
+
+    // Handle completion
+    if (status === 'complete') {
+      container?.classList.add('complete');
+      container?.classList.remove('error');
+      stopElapsedTimer();
+
+      // Update elapsed time to show final
+      const elapsedValue = document.getElementById('elapsed-value');
+      if (startTime && elapsedValue) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        elapsedValue.textContent = `Completed in ${formatElapsedTime(elapsed)}`;
+      }
+
+      eventSource?.close();
+
+      // Dispatch completion event
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('gapAnalysisComplete', {
+          detail: { resultUrl: data.resultUrl, reportUrl: data.reportUrl }
+        }));
+      }, 1500);
+    }
+
+    // Handle error
+    if (status === 'error') {
+      container?.classList.add('error');
+      container?.classList.remove('complete');
+      stageEl.textContent = 'Error';
+      statusText.textContent = data.error || 'Analysis failed. Please try again.';
+      stopElapsedTimer();
+      eventSource?.close();
+      showErrorView(data.error || 'Analysis failed. Please try again.');
+    }
+  }
+
+  function showErrorView(message: string) {
+    const errorView = document.getElementById('gap-error-view');
+    const errorMessage = document.getElementById('gap-error-message');
+
+    if (errorView && errorMessage) {
+      errorMessage.textContent = message;
+      errorView.style.display = 'flex';
+    }
+  }
+
+  function hideErrorView() {
+    const errorView = document.getElementById('gap-error-view');
+    if (errorView) {
+      errorView.style.display = 'none';
+    }
+  }
+
+  function resetProgress() {
+    const container = document.getElementById('gap-progress-container');
+    container?.classList.remove('active', 'error', 'complete');
+    hideErrorView();
+    stopElapsedTimer();
+    eventSource?.close();
+
+    // Dispatch reset event to show form again
+    window.dispatchEvent(new CustomEvent('gapAnalysisReset'));
+  }
+
+  function updatePhaseTimeline(status: string) {
+    const phases = ['searching', 'collecting', 'analyzing', 'comparing', 'generating', 'complete'];
+    const currentIndex = phases.indexOf(status);
+
+    // Update dots
+    document.querySelectorAll('.phase-dot').forEach((dot) => {
+      const phase = dot.getAttribute('data-phase');
+      const phaseIndex = phases.indexOf(phase || '');
+
+      dot.classList.remove('active', 'complete');
+
+      if (phaseIndex < currentIndex) {
+        dot.classList.add('complete');
+      } else if (phaseIndex === currentIndex) {
+        dot.classList.add('active');
+      }
+    });
+
+    // Update lines between dots
+    document.querySelectorAll('.phase-line').forEach((line, index) => {
+      line.classList.toggle('complete', index < currentIndex);
+    });
+  }
+
+  function resetStats() {
+    const statPapers = document.getElementById('stat-papers');
+    const statGaps = document.getElementById('stat-gaps');
+    const statDirections = document.getElementById('stat-directions');
+
+    if (statPapers) statPapers.innerHTML = '<span class="stat-loading">Searching...</span>';
+    if (statGaps) statGaps.innerHTML = '<span class="stat-loading">Analyzing...</span>';
+    if (statDirections) statDirections.innerHTML = '<span class="stat-loading">Generating...</span>';
+  }
+
+  // Start listening to progress
+  function startProgressTracking(taskId: string, topic: string) {
+    currentTopic = topic;
+    const container = document.getElementById('gap-progress-container');
+    const topicEl = document.getElementById('progress-topic');
+    const elapsedEl = document.getElementById('elapsed-time');
+    const elapsedValue = document.getElementById('elapsed-value');
+
+    if (topicEl) topicEl.textContent = topic;
+    if (elapsedValue) elapsedValue.textContent = '0:00';
+    elapsedEl?.classList.remove('visible');
+
+    resetStats();
+
+    container?.classList.add('active');
+    container?.classList.remove('complete', 'error');
+
+    // Reset phase timeline
+    document.querySelectorAll('.phase-dot').forEach(dot => {
+      dot.classList.remove('active', 'complete');
+    });
+    document.querySelectorAll('.phase-line').forEach(line => {
+      line.classList.remove('complete');
+    });
+
+    // Close any existing connection
+    eventSource?.close();
+    stopElapsedTimer();
+
+    // Start elapsed timer
+    startElapsedTimer();
+
+    // Start SSE connection
+    eventSource = new EventSource(`/api/gap-progress/${taskId}`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        updateProgress(data);
+      } catch (e) {
+        console.error('Failed to parse progress data:', e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.error('SSE connection error');
+      eventSource?.close();
+    };
+  }
+
+  // Listen for analysis start
+  window.addEventListener('gapAnalysisStarted', ((e: CustomEvent) => {
+    const { taskId, topic } = e.detail;
+    document.getElementById('gap-form-card')?.classList.remove('active');
+    hideErrorView();
+    startProgressTracking(taskId, topic);
+  }) as EventListener);
+
+  // Retry button
+  const retryBtn = document.getElementById('gap-retry-btn');
+  retryBtn?.addEventListener('click', resetProgress);
+
+  // Listen for reset event
+  window.addEventListener('gapProgressReset', () => {
+    resetProgress();
+  });
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    eventSource?.close();
+    stopElapsedTimer();
+  });
+</script>
