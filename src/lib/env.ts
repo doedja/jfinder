@@ -10,7 +10,7 @@ const envSchema = z.object({
   SCOPUS_API_URL: z.string().url().default('https://api.elsevier.com/content/search/scopus'),
 
   // Optional configuration
-  OPENROUTER_MODEL: z.string().default('meta-llama/llama-3.3-70b-instruct'),
+  OPENROUTER_MODEL: z.string().default('qwen/qwen-2.5-72b-instruct'),
 
   // Proxy (optional)
   PROXY_URL: z.string().url().optional(),

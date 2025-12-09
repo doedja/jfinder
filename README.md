@@ -125,7 +125,7 @@ docker run -d -p 3000:3000 \
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `OPENROUTER_API_KEY` | Yes | - | OpenRouter API key for LLM |
-| `OPENROUTER_MODEL` | No | `meta-llama/llama-3.3-70b-instruct` | LLM model to use |
+| `OPENROUTER_MODEL` | No | `qwen/qwen-2.5-72b-instruct` | LLM model to use |
 | `SCOPUS_API_KEY` | No | - | Elsevier Scopus API key (falls back to OpenAlex) |
 | `ANNAS_API_KEY` | No | - | Anna's Archive API key (adds extra download source) |
 | `RAPIDAPI_KEY` | No | - | RapidAPI key for Anna's Archive |
