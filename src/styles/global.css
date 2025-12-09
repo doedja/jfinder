@@ -301,6 +301,7 @@ label {
    =================================== */
 
 .flow-section {
+  display: none;
   opacity: 0;
   transform: translateY(20px);
   transition:
@@ -310,6 +311,7 @@ label {
 }
 
 .flow-section.visible {
+  display: block;
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;

@@ -1,20 +1,15 @@
 ---
-// UnifiedCapabilities - Collapsible section showing both Paper Finder and Gap Analysis features
+// UnifiedCapabilities - Section showing both Paper Finder and Gap Analysis features
 ---
 
 <div class="capabilities-section">
-  <button class="capabilities-header capabilities-toggle" type="button" aria-expanded="false">
+  <div class="capabilities-header">
     <span class="header-content">
       <span class="header-label">Capabilities</span>
       <span class="header-divider"></span>
       <span class="header-hint">12 features across both modes</span>
     </span>
-    <span class="header-icon" aria-hidden="true">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M5 8L10 13L15 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </span>
-  </button>
+  </div>
 
   <div class="capabilities-content">
     <div class="capabilities-inner">
@@ -156,17 +151,7 @@
     padding: 1rem 1.25rem;
     background: transparent;
     border: none;
-    cursor: pointer;
     font-family: var(--font-body);
-    transition: all 0.2s ease;
-  }
-
-  .capabilities-header:hover {
-    background: var(--color-bg-warm);
-  }
-
-  :global([data-mode="gap"]) .capabilities-header:hover {
-    background: var(--color-gap-bg-deep);
   }
 
   .header-content {
@@ -209,61 +194,13 @@
     color: var(--color-gap-text-muted);
   }
 
-  .header-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    background: var(--color-bg-warm);
-    color: var(--color-text-muted);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  :global([data-mode="gap"]) .header-icon {
-    background: var(--color-gap-bg-deep);
-    color: var(--color-gap-text-muted);
-  }
-
-  .capabilities-header:hover .header-icon {
-    color: var(--color-accent);
-    background: rgba(139, 90, 43, 0.1);
-  }
-
-  :global([data-mode="gap"]) .capabilities-header:hover .header-icon {
-    color: var(--color-gap-accent);
-    background: rgba(43, 90, 74, 0.1);
-  }
-
-  .capabilities-section.expanded .header-icon {
-    transform: rotate(180deg);
-  }
-
   /* Content */
   .capabilities-content {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .capabilities-section.expanded .capabilities-content {
-    grid-template-rows: 1fr;
+    display: block;
   }
 
   .capabilities-inner {
-    overflow: hidden;
-    padding: 0 1.25rem;
-    opacity: 0;
-    transform: translateY(-8px);
-    transition: all 0.3s ease;
-  }
-
-  .capabilities-section.expanded .capabilities-inner {
     padding: 0 1.25rem 1.5rem;
-    opacity: 1;
-    transform: translateY(0);
-    transition-delay: 0.1s;
   }
 
   /* Feature Groups */
@@ -437,35 +374,3 @@
   }
 </style>
 
-<script>
-  // Handle all capability section instances (there may be multiple on the page)
-  document.querySelectorAll('.capabilities-section').forEach(section => {
-    const toggle = section.querySelector('.capabilities-toggle');
-
-    // Check localStorage for saved state
-    const savedState = localStorage.getItem('jfinder_capabilities_expanded');
-    if (savedState === 'true') {
-      section.classList.add('expanded');
-      toggle?.setAttribute('aria-expanded', 'true');
-    }
-
-    toggle?.addEventListener('click', () => {
-      const isExpanded = section.classList.toggle('expanded');
-      toggle.setAttribute('aria-expanded', String(isExpanded));
-      localStorage.setItem('jfinder_capabilities_expanded', String(isExpanded));
-
-      // Sync all instances to have the same state
-      document.querySelectorAll('.capabilities-section').forEach(s => {
-        if (s !== section) {
-          if (isExpanded) {
-            s.classList.add('expanded');
-            s.querySelector('.capabilities-toggle')?.setAttribute('aria-expanded', 'true');
-          } else {
-            s.classList.remove('expanded');
-            s.querySelector('.capabilities-toggle')?.setAttribute('aria-expanded', 'false');
-          }
-        }
-      });
-    });
-  });
-</script>
