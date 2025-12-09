@@ -17,25 +17,22 @@ RUN bun run build
 # Production stage
 FROM base AS runtime
 
-# Create non-root user
-RUN groupadd --system --gid 1001 nodejs && \
-    useradd --system --uid 1001 --gid nodejs astro
-
 # Copy built assets
-COPY --from=build --chown=astro:nodejs /app/dist ./dist
-COPY --from=build --chown=astro:nodejs /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+
+# Copy and setup entrypoint
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Create downloads directory
-RUN mkdir -p /app/downloads && chown astro:nodejs /app/downloads
+RUN mkdir -p /app/downloads
 
 # Set environment variables
 ENV HOST=0.0.0.0
 ENV PORT=3000
 ENV NODE_ENV=production
 ENV DOWNLOAD_DIR=/app/downloads
-
-# Switch to non-root user
-USER astro
 
 # Expose port
 EXPOSE 3000
@@ -44,5 +41,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD bun -e "fetch('http://localhost:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
-# Start the server
-CMD ["bun", "run", "./dist/server/entry.mjs"]
+# Start via entrypoint
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
