@@ -23,6 +23,10 @@ const envSchema = z.object({
   DOWNLOAD_DIR: z.string().default('./downloads'),
   MAX_UPLOAD_SIZE: z.coerce.number().default(16 * 1024 * 1024), // 16MB
   TASK_TTL_MS: z.coerce.number().default(60 * 60 * 1000), // 1 hour
+
+  // Analytics (optional)
+  UMAMI_WEBSITE_ID: z.string().optional(),
+  UMAMI_SRC: z.string().url().optional(),
 });
 
 function loadEnv() {

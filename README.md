@@ -133,6 +133,8 @@ docker run -d -p 3000:3000 \
 | `DOWNLOAD_DIR` | No | `./downloads` | Directory for downloads |
 | `TASK_TTL_MS` | No | `3600000` | Task cleanup time (1 hour) |
 | `MAX_UPLOAD_SIZE` | No | `16777216` | Max upload size (16MB) |
+| `UMAMI_WEBSITE_ID` | No | - | Umami analytics website ID |
+| `UMAMI_SRC` | No | - | Umami analytics script URL |
 
 ## Download Sources
 
