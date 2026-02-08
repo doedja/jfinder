@@ -151,12 +151,18 @@ import UnifiedCapabilities from '../components/UnifiedCapabilities.astro';
   themeToggle?.addEventListener('click', () => {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const newTheme = isDark ? 'light' : 'dark';
+    document.documentElement.classList.add('no-transition');
     if (newTheme === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.removeAttribute('data-theme');
     }
     localStorage.setItem('jfinder-theme', newTheme);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('no-transition');
+      });
+    });
   });
 
   // Auto-expand capabilities on this page

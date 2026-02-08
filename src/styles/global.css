@@ -592,6 +592,14 @@ label {
    Reduced Motion
    =================================== */
 
+/* Instant theme switch — disable transitions while toggling */
+.no-transition,
+.no-transition *,
+.no-transition *::before,
+.no-transition *::after {
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flow-section,
   .btn-submit .btn-content,
