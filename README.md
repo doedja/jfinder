@@ -28,7 +28,7 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 
 ### Prerequisites
 
-- Node.js v18+
+- [Bun](https://bun.sh/) v1.0+ or Node.js v18+
 - [OpenRouter API Key](https://openrouter.ai/keys) (required)
 - [Scopus API Key](https://dev.elsevier.com/) (optional - falls back to OpenAlex)
 
@@ -42,7 +42,7 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 
 2. Install dependencies:
    ```bash
-   npm install
+   bun install
    ```
 
 3. Create environment file:
@@ -58,7 +58,7 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 
 5. Start development server:
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 6. Open http://localhost:5173
@@ -66,8 +66,8 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 ### Production Build
 
 ```bash
-npm run build
-npm run start
+bun run build
+bun run start
 ```
 
 ## Docker Deployment
