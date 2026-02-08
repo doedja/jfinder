@@ -5,6 +5,7 @@ export interface Paper {
   authors: string;
   doi: string;
   openAccessUrl?: string; // Direct OA URL from OpenAlex/Unpaywall
+  abstract?: string; // Paper abstract from search APIs
 }
 
 export interface DownloadResult {

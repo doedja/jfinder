@@ -1,5 +1,8 @@
 import * as cheerio from 'cheerio';
 import { proxyService, type ProxyConfig } from './proxy.service';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'scihub' });
 
 const SCIHUB_DOMAINS = [
   'https://sci-hub.se',
@@ -118,7 +121,7 @@ async function fetchWithProxy(
     return response;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      console.log(`Timeout accessing ${url}`);
+      log.debug('Request timeout', { url });
     }
     return null;
   } finally {
@@ -137,11 +140,11 @@ export async function downloadFromScihub(doi: string): Promise<Buffer | null> {
     const url = `${domain}/${doi}`;
 
     try {
-      console.log(`Trying ${domain}...`);
+      log.debug('Trying Sci-Hub domain', { domain, doi });
       const response = await fetchWithProxy(url, proxy);
 
       if (!response || !response.ok) {
-        console.log(`Failed to access ${domain}: ${response?.status || 'no response'}`);
+        log.debug('Sci-Hub domain failed', { domain, status: response?.status });
         continue;
       }
 
@@ -149,17 +152,17 @@ export async function downloadFromScihub(doi: string): Promise<Buffer | null> {
       const pdfLink = extractPdfLink(html, domain);
 
       if (!pdfLink) {
-        console.log(`No PDF link found on ${domain}`);
+        log.debug('No PDF link found', { domain });
         continue;
       }
 
-      console.log(`Found PDF link: ${pdfLink}`);
+      log.debug('Found PDF link', { domain, pdfLink });
 
       // Download the PDF
       const pdfResponse = await fetchWithProxy(pdfLink, proxy, 30000);
 
       if (!pdfResponse || !pdfResponse.ok) {
-        console.log(`Failed to download PDF from ${domain}`);
+        log.debug('PDF download failed', { domain });
         continue;
       }
 
@@ -167,14 +170,14 @@ export async function downloadFromScihub(doi: string): Promise<Buffer | null> {
       const contentType = pdfResponse.headers.get('content-type') || undefined;
 
       if (!isPdf(content, contentType)) {
-        console.log(`Downloaded file is not a PDF from ${domain}`);
+        log.debug('Downloaded file not a PDF', { domain });
         continue;
       }
 
-      console.log(`Successfully downloaded from ${domain}`);
+      log.debug('Downloaded from Sci-Hub', { domain, doi });
       return Buffer.from(content);
     } catch (error) {
-      console.error(`Error with ${domain}:`, error);
+      log.debug('Sci-Hub domain error', { domain, error: String(error) });
       continue;
     }
   }
@@ -182,7 +185,7 @@ export async function downloadFromScihub(doi: string): Promise<Buffer | null> {
   // Try direct DOI link as last resort
   const doiUrl = `https://doi.org/${doi}`;
   try {
-    console.log(`Trying direct DOI link...`);
+    log.debug('Trying direct DOI link', { doi });
     const response = await fetchWithProxy(doiUrl, proxy);
 
     if (response && response.ok) {
@@ -197,14 +200,14 @@ export async function downloadFromScihub(doi: string): Promise<Buffer | null> {
           const contentType = pdfResponse.headers.get('content-type') || undefined;
 
           if (isPdf(content, contentType)) {
-            console.log('Successfully downloaded from DOI link');
+            log.debug('Downloaded from DOI link', { doi });
             return Buffer.from(content);
           }
         }
       }
     }
   } catch (error) {
-    console.error('Error with DOI link:', error);
+    log.debug('DOI link error', { doi, error: String(error) });
   }
 
   return null;

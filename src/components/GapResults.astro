@@ -23,6 +23,18 @@
         <span class="btn-icon">↓</span>
         <span class="btn-text">Download Report</span>
       </button>
+      <button class="action-btn secondary-btn" id="export-bibtex-btn" type="button">
+        <span class="btn-icon">↓</span>
+        <span class="btn-text">BibTeX</span>
+      </button>
+      <button class="action-btn secondary-btn" id="export-ris-btn" type="button">
+        <span class="btn-icon">↓</span>
+        <span class="btn-text">RIS</span>
+      </button>
+      <button class="action-btn primary-btn" id="download-papers-btn" type="button" style="display:none;">
+        <span class="btn-icon">↓</span>
+        <span class="btn-text">Download Papers</span>
+      </button>
       <button class="action-btn text-btn" id="new-analysis-btn" type="button">
         New Analysis
       </button>
@@ -171,6 +183,53 @@
         <span class="btn-text">Refine Analysis</span>
         <span class="btn-icon">→</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Download Progress Modal -->
+<div class="download-progress-modal" id="download-progress-modal">
+  <div class="refine-backdrop" id="download-progress-backdrop"></div>
+  <div class="refine-dialog" style="max-width:480px;">
+    <div class="refine-header">
+      <h2 class="refine-title">Downloading Papers</h2>
+      <button class="refine-close" id="download-progress-close" type="button">×</button>
+    </div>
+    <div class="refine-body" style="text-align:center;">
+      <div class="download-progress-ring">
+        <svg viewBox="0 0 80 80" width="80" height="80">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--color-gap-border)" stroke-width="6" />
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--color-gap-accent)" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="213.628" id="dl-progress-ring"
+            style="stroke-dashoffset:213.628;transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 0.4s ease;" />
+        </svg>
+        <span class="dl-progress-pct" id="dl-progress-pct">0%</span>
+      </div>
+      <p class="dl-progress-msg" id="dl-progress-msg">Preparing download...</p>
+      <p class="dl-progress-detail" id="dl-progress-detail"></p>
+    </div>
+    <div class="refine-footer" id="dl-done-footer" style="display:none;">
+      <a class="action-btn primary-btn" id="dl-download-link" href="#" target="_blank">
+        <span class="btn-icon">↓</span>
+        <span class="btn-text">Download ZIP</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Related Papers Modal -->
+<div class="related-papers-modal" id="related-papers-modal">
+  <div class="refine-backdrop" id="related-papers-backdrop"></div>
+  <div class="refine-dialog" style="max-width:560px;">
+    <div class="refine-header">
+      <h2 class="refine-title" id="related-papers-title">Related Papers</h2>
+      <button class="refine-close" id="related-papers-close" type="button">×</button>
+    </div>
+    <div class="refine-body" id="related-papers-body">
+      <div class="loading-overlay">
+        <span class="spinner spinner-lg"></span>
+        <span>Finding related papers...</span>
+      </div>
     </div>
   </div>
 </div>
@@ -623,11 +682,80 @@
     transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
   }
 
-  .gap-approach.collapsed {
+  .gap-approach.collapsed,
+  .gap-related-papers.collapsed {
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
     opacity: 0;
+  }
+
+  /* Related Papers */
+  .gap-related-papers {
+    margin-top: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--color-gap-bg);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  }
+
+  .related-papers-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-gap-text-muted);
+    margin-bottom: var(--space-sm);
+  }
+
+  .related-papers-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .related-paper-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-gap-border);
+  }
+
+  .related-paper-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .related-paper-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-gap-text);
+  }
+
+  .related-paper-meta {
+    font-size: 0.75rem;
+    color: var(--color-gap-text-muted);
+  }
+
+  .related-paper-doi {
+    font-size: 0.75rem;
+    color: var(--color-gap-accent);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .related-paper-doi:hover {
+    color: var(--color-gap-accent-dark);
+    text-decoration: underline;
+  }
+
+  .gap-papers-toggle {
+    margin-left: var(--space-sm);
   }
 
   /* Direction Card */
@@ -1105,6 +1233,136 @@
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
 
+  /* Download Progress Modal */
+  .download-progress-modal,
+  .related-papers-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .download-progress-modal.active,
+  .related-papers-modal.active {
+    display: flex;
+    animation: modalFadeIn 0.2s ease;
+  }
+
+  .download-progress-ring {
+    position: relative;
+    display: inline-block;
+    margin-bottom: var(--space-md);
+  }
+
+  .dl-progress-pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--color-gap-text);
+  }
+
+  .dl-progress-msg {
+    font-size: 0.9375rem;
+    color: var(--color-gap-text);
+    margin: 0 0 0.25rem;
+  }
+
+  .dl-progress-detail {
+    font-size: 0.8125rem;
+    color: var(--color-gap-text-muted);
+    margin: 0;
+  }
+
+  /* Related Papers Modal Content */
+  .related-section {
+    margin-bottom: var(--space-lg);
+  }
+
+  .related-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .related-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-gap-accent);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-gap-border);
+  }
+
+  .related-paper-card {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--color-gap-bg);
+    border-radius: var(--radius-md);
+    transition: background 0.2s ease;
+  }
+
+  .related-paper-card:hover {
+    background: var(--color-gap-bg-deep);
+  }
+
+  .related-paper-card-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-gap-text);
+    margin-bottom: 0.25rem;
+  }
+
+  .related-paper-card-meta {
+    font-size: 0.75rem;
+    color: var(--color-gap-text-muted);
+    margin-bottom: 0.25rem;
+  }
+
+  .related-paper-card-doi {
+    font-size: 0.75rem;
+    color: var(--color-gap-accent);
+    text-decoration: none;
+  }
+
+  .related-paper-card-doi:hover {
+    text-decoration: underline;
+  }
+
+  .find-related-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: none;
+    border: 1px solid var(--color-gap-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    color: var(--color-gap-accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.25rem;
+  }
+
+  .find-related-btn:hover {
+    background: rgba(43, 90, 74, 0.05);
+    border-color: var(--color-gap-accent);
+  }
+
+  .related-empty {
+    text-align: center;
+    padding: var(--space-lg);
+    color: var(--color-gap-text-muted);
+    font-size: 0.875rem;
+  }
+
   @media (max-width: 640px) {
     .results-header {
       flex-direction: column;
@@ -1156,6 +1414,7 @@
 <script>
   let currentResults: any = null;
   let currentParams: any = null;
+  let currentTaskId: string | null = null;
   let reportUrl: string | null = null;
   let allGaps: any[] = [];
   let filteredGaps: any[] = [];
@@ -1284,7 +1543,192 @@
     }
   });
 
+  // Export BibTeX
+  document.getElementById('export-bibtex-btn')?.addEventListener('click', () => {
+    if (currentTaskId) {
+      window.open(`/api/export/${currentTaskId}/bibtex`, '_blank');
+    }
+  });
+
+  // Export RIS
+  document.getElementById('export-ris-btn')?.addEventListener('click', () => {
+    if (currentTaskId) {
+      window.open(`/api/export/${currentTaskId}/ris`, '_blank');
+    }
+  });
+
+  // Download Papers from gap analysis
+  document.getElementById('download-papers-btn')?.addEventListener('click', async () => {
+    if (!currentTaskId) return;
+
+    const modal = document.getElementById('download-progress-modal');
+    const ring = document.getElementById('dl-progress-ring');
+    const pct = document.getElementById('dl-progress-pct');
+    const msg = document.getElementById('dl-progress-msg');
+    const detail = document.getElementById('dl-progress-detail');
+    const doneFooter = document.getElementById('dl-done-footer');
+    const downloadLink = document.getElementById('dl-download-link') as HTMLAnchorElement;
+
+    if (!modal) return;
+
+    // Reset and show modal
+    if (ring) ring.style.strokeDashoffset = '213.628';
+    if (pct) pct.textContent = '0%';
+    if (msg) msg.textContent = 'Starting download...';
+    if (detail) detail.textContent = '';
+    if (doneFooter) doneFooter.style.display = 'none';
+    modal.classList.add('active');
+
+    try {
+      const res = await fetch(`/api/download-gap-papers/${currentTaskId}`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        if (msg) msg.textContent = err.error || 'Failed to start download';
+        return;
+      }
+
+      const { taskId: downloadTaskId } = await res.json();
+
+      // Track progress via SSE
+      const es = new EventSource(`/api/progress/${downloadTaskId}`);
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const progress = data.progress || 0;
+          const circumference = 213.628;
+          const offset = circumference - (progress / 100) * circumference;
+
+          if (ring) ring.style.strokeDashoffset = offset.toString();
+          if (pct) pct.textContent = `${progress}%`;
+          if (msg) msg.textContent = data.message || 'Downloading...';
+          if (detail) detail.textContent = `${data.papersDownloaded || 0}/${data.papersFound || 0} papers`;
+
+          if (data.status === 'complete') {
+            es.close();
+            if (msg) msg.textContent = 'Download complete!';
+            if (doneFooter) doneFooter.style.display = 'flex';
+            if (downloadLink && data.downloadUrl) {
+              downloadLink.href = data.downloadUrl;
+            }
+          }
+
+          if (data.status === 'error') {
+            es.close();
+            if (msg) msg.textContent = data.error || 'Download failed';
+          }
+        } catch (e) {
+          console.error('Failed to parse progress:', e);
+        }
+      };
+      es.onerror = () => {
+        es.close();
+        if (msg) msg.textContent = 'Connection lost';
+      };
+    } catch (error) {
+      if (msg) msg.textContent = 'Failed to start download';
+      console.error('Download error:', error);
+    }
+  });
+
+  // Download progress modal close
+  document.getElementById('download-progress-close')?.addEventListener('click', () => {
+    document.getElementById('download-progress-modal')?.classList.remove('active');
+  });
+  document.getElementById('download-progress-backdrop')?.addEventListener('click', () => {
+    document.getElementById('download-progress-modal')?.classList.remove('active');
+  });
+
+  // Related papers modal handlers
+  document.getElementById('related-papers-close')?.addEventListener('click', () => {
+    document.getElementById('related-papers-modal')?.classList.remove('active');
+  });
+  document.getElementById('related-papers-backdrop')?.addEventListener('click', () => {
+    document.getElementById('related-papers-modal')?.classList.remove('active');
+  });
+
+  async function showRelatedPapers(doi: string, title: string) {
+    const modal = document.getElementById('related-papers-modal');
+    const body = document.getElementById('related-papers-body');
+    const titleEl = document.getElementById('related-papers-title');
+
+    if (!modal || !body) return;
+
+    if (titleEl) titleEl.textContent = `Related: ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}`;
+    body.innerHTML = `<div class="loading-overlay"><span class="spinner spinner-lg"></span><span>Finding related papers...</span></div>`;
+    modal.classList.add('active');
+
+    try {
+      const res = await fetch(`/api/related-papers/${encodeURIComponent(doi)}?direction=both&count=10`);
+      if (!res.ok) throw new Error('Failed to fetch');
+
+      const data = await res.json();
+      let html = '';
+
+      if (data.citedBy?.length > 0) {
+        html += `<div class="related-section">
+          <div class="related-section-title">Cited By (${data.citedBy.length})</div>
+          ${data.citedBy.map((p: any) => renderRelatedPaperCard(p)).join('')}
+        </div>`;
+      }
+
+      if (data.references?.length > 0) {
+        html += `<div class="related-section">
+          <div class="related-section-title">References (${data.references.length})</div>
+          ${data.references.map((p: any) => renderRelatedPaperCard(p)).join('')}
+        </div>`;
+      }
+
+      if (!data.citedBy?.length && !data.references?.length) {
+        html = `<div class="related-empty">No related papers found for this DOI.</div>`;
+      }
+
+      body.innerHTML = html;
+    } catch (error) {
+      body.innerHTML = `<div class="related-empty">Failed to fetch related papers. Please try again.</div>`;
+    }
+  }
+
+  function renderRelatedPaperCard(paper: any): string {
+    return `<div class="related-paper-card">
+      <div class="related-paper-card-title">${paper.title}</div>
+      <div class="related-paper-card-meta">${paper.authors} (${paper.year}) - ${paper.journal}</div>
+      ${paper.doi ? `<a href="https://doi.org/${paper.doi}" target="_blank" rel="noopener" class="related-paper-card-doi">${paper.doi}</a>` : ''}
+    </div>`;
+  }
+
   // Render functions
+  // Helper to find paper details by DOI
+  function findPaperByDoi(doi: string): any | null {
+    if (!currentResults?.papers) return null;
+    return currentResults.papers.find((p: any) => p.doi === doi || p.doi?.endsWith(doi));
+  }
+
+  function renderRelatedPapers(relatedPapers: string[]): string {
+    if (!relatedPapers || relatedPapers.length === 0) return '';
+
+    const papers = relatedPapers
+      .map(doi => findPaperByDoi(doi))
+      .filter(Boolean);
+
+    if (papers.length === 0) return '';
+
+    return `
+      <div class="gap-related-papers collapsed" id="">
+        <div class="related-papers-label">Supporting Papers (${papers.length})</div>
+        <ul class="related-papers-list">
+          ${papers.map((p: any) => `
+            <li class="related-paper-item">
+              <span class="related-paper-title">${p.title}</span>
+              <span class="related-paper-meta">${p.authors} (${p.year}) - ${p.journal}</span>
+              ${p.doi ? `<a href="https://doi.org/${p.doi}" target="_blank" rel="noopener" class="related-paper-doi">${p.doi}</a>` : ''}
+              ${p.doi ? `<button class="find-related-btn" data-doi="${p.doi}" data-title="${p.title.replace(/"/g, '&quot;')}" type="button">Find Related →</button>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
   function renderGaps(gaps: any[]) {
     const gapsList = document.getElementById('gaps-list')!;
 
@@ -1292,6 +1736,10 @@
       gapsList.innerHTML = gaps.map((gap, index) => {
         const severity = gap.severity || 'medium';
         const cardId = `gap-card-${index}`;
+        const hasRelated = gap.relatedPapers && gap.relatedPapers.length > 0;
+        const relatedHtml = hasRelated ? renderRelatedPapers(gap.relatedPapers) : '';
+        // Assign IDs to related-papers divs after render
+        const relatedId = `${cardId}-related`;
 
         return `
           <div class="gap-card" id="${cardId}">
@@ -1311,20 +1759,40 @@
                 ${gap.suggestedApproach}
               </div>
             ` : ''}
+            ${hasRelated ? `
+              <button class="gap-approach-toggle gap-papers-toggle" data-target="${relatedId}">
+                Supporting papers (${gap.relatedPapers.length})
+              </button>
+              ${relatedHtml.replace('id=""', `id="${relatedId}"`)}
+            ` : ''}
           </div>
         `;
       }).join('');
 
-      // Add event listeners for collapsible approach sections
+      // Add event listeners for collapsible sections
       gapsList.querySelectorAll('.gap-approach-toggle').forEach(btn => {
         btn.addEventListener('click', function() {
           const target = this.getAttribute('data-target');
-          const approach = document.getElementById(target!);
-          if (approach) {
-            const isExpanded = !approach.classList.contains('collapsed');
-            approach.classList.toggle('collapsed');
-            this.textContent = isExpanded ? 'View suggested approach' : 'Hide suggested approach';
+          const section = document.getElementById(target!);
+          if (section) {
+            const isExpanded = !section.classList.contains('collapsed');
+            section.classList.toggle('collapsed');
+            if (this.classList.contains('gap-papers-toggle')) {
+              const count = this.textContent?.match(/\d+/)?.[0] || '';
+              this.textContent = isExpanded ? `Supporting papers (${count})` : `Hide papers (${count})`;
+            } else {
+              this.textContent = isExpanded ? 'View suggested approach' : 'Hide suggested approach';
+            }
           }
+        });
+      });
+
+      // Add event listeners for "Find Related" buttons
+      gapsList.querySelectorAll('.find-related-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const doi = this.getAttribute('data-doi');
+          const title = this.getAttribute('data-title');
+          if (doi && title) showRelatedPapers(doi, title);
         });
       });
     } else {
@@ -1377,6 +1845,10 @@
   async function loadResults(resultUrl: string, reportUrlParam?: string, topic?: string) {
     reportUrl = reportUrlParam || null;
 
+    // Extract taskId from URL
+    const taskIdMatch = resultUrl.match(/\/([0-9a-f-]{36})/);
+    currentTaskId = taskIdMatch ? taskIdMatch[1] : null;
+
     // Show container with loading state
     document.getElementById('gap-progress-container')?.classList.remove('active');
     document.getElementById('gap-results-container')?.classList.add('active');
@@ -1423,6 +1895,12 @@
     document.getElementById('summary-papers')!.textContent = data.papers?.length || 0;
     document.getElementById('summary-gaps')!.textContent = data.gaps?.length || 0;
     document.getElementById('summary-directions')!.textContent = data.directions?.length || 0;
+
+    // Show download button if papers exist
+    const downloadBtn = document.getElementById('download-papers-btn');
+    if (downloadBtn) {
+      downloadBtn.style.display = (data.papers?.length > 0) ? 'flex' : 'none';
+    }
 
     // Update tab counts
     document.getElementById('tab-gaps-count')!.textContent = data.gaps?.length || 0;
@@ -1601,6 +2079,7 @@
     allGaps = [];
     filteredGaps = [];
     currentResults = null;
+    currentTaskId = null;
     reportUrl = null;
 
     // Hide results container

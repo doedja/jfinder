@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { Paper } from '../types';
 import type {
   LLMGapAnalysis,
@@ -5,6 +6,40 @@ import type {
   LLMDirectionSuggestion
 } from '../types/gap-analysis';
 import { env } from '../env';
+import { withRetryNullable } from '../utils/retry';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'openrouter' });
+
+// Zod schemas for LLM response validation
+const gapAnalysisSchema = z.object({
+  gaps: z.array(z.object({
+    title: z.string(),
+    type: z.enum(['under-researched-topic', 'methodological-gap', 'theoretical-gap', 'temporal-gap', 'geographical-gap', 'contradictory-findings']),
+    severity: z.enum(['high', 'medium', 'low']),
+    description: z.string(),
+    suggestedApproach: z.string().optional()
+  })),
+  observations: z.array(z.string())
+});
+
+const comparisonSchema = z.object({
+  methodologies: z.array(z.string()),
+  contradictions: z.array(z.string()),
+  commonApproaches: z.array(z.string()),
+  uniqueContributions: z.array(z.string())
+});
+
+const directionsSchema = z.object({
+  directions: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    rationale: z.string(),
+    methodology: z.string(),
+    feasibility: z.enum(['high', 'medium', 'low']),
+    novelty: z.enum(['high', 'medium', 'low'])
+  }))
+});
 
 interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
@@ -28,9 +63,9 @@ const OPENROUTER_HEADERS = {
 };
 
 /**
- * Call OpenRouter API with messages
+ * Call OpenRouter API with messages (single attempt)
  */
-async function callOpenRouter(
+async function callOpenRouterOnce(
   messages: OpenRouterMessage[],
   temperature = 0.3,
   timeoutMs = 60000
@@ -54,7 +89,7 @@ async function callOpenRouter(
     });
 
     if (!response.ok) {
-      console.error(`OpenRouter API error: ${response.status}`);
+      log.error('OpenRouter API error', { status: response.status });
       return null;
     }
 
@@ -62,14 +97,29 @@ async function callOpenRouter(
     return data.choices?.[0]?.message?.content || null;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('OpenRouter request timeout');
+      log.error('OpenRouter request timeout');
     } else {
-      console.error('OpenRouter error:', error);
+      log.error('OpenRouter error', { error: String(error) });
     }
     return null;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * Call OpenRouter API with messages and retry on failure
+ */
+async function callOpenRouter(
+  messages: OpenRouterMessage[],
+  temperature = 0.3,
+  timeoutMs = 60000
+): Promise<string | null> {
+  return withRetryNullable(
+    () => callOpenRouterOnce(messages, temperature, timeoutMs),
+    2,
+    2000
+  );
 }
 
 /**
@@ -250,8 +300,14 @@ export async function analyzeGaps(
 
   const papersText = papers
     .slice(0, 15)
-    .map((p, i) => `${i + 1}. "${p.title}" (${p.year}) - ${p.journal}`)
-    .join('\n');
+    .map((p, i) => {
+      let entry = `${i + 1}. "${p.title}" (${p.year}) - ${p.journal}`;
+      if (p.abstract) {
+        entry += `\n   Abstract: ${p.abstract.substring(0, 300)}${p.abstract.length > 300 ? '...' : ''}`;
+      }
+      return entry;
+    })
+    .join('\n\n');
 
   const prompt = `Analyze these research papers on "${topic}" to identify gaps in the literature.
 
@@ -299,14 +355,28 @@ Respond in this exact JSON format:
   }
 
   try {
-    // Extract JSON from response (handle markdown code blocks)
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
-    const parsed = JSON.parse(jsonMatch[0]) as LLMGapAnalysis;
-    return parsed;
+    const raw = JSON.parse(jsonMatch[0]);
+    const validated = gapAnalysisSchema.safeParse(raw);
+    if (!validated.success) {
+      log.warn('LLM gap analysis validation failed', { issues: validated.error.issues });
+      // Fall back to partial data with safe defaults
+      return {
+        gaps: (raw.gaps || []).map((g: any) => ({
+          title: g.title || 'Unknown Gap',
+          type: g.type || 'under-researched-topic',
+          severity: g.severity || 'medium',
+          description: g.description || '',
+          suggestedApproach: g.suggestedApproach
+        })),
+        observations: raw.observations || []
+      } as LLMGapAnalysis;
+    }
+    return validated.data as LLMGapAnalysis;
   } catch (error) {
-    console.error('Failed to parse gap analysis response:', error);
+    log.error('Failed to parse gap analysis response', { error: String(error) });
     return null;
   }
 }
@@ -324,8 +394,14 @@ export async function compareMethodologies(
 
   const papersText = papers
     .slice(0, 12)
-    .map((p, i) => `${i + 1}. "${p.title}" (${p.year})`)
-    .join('\n');
+    .map((p, i) => {
+      let entry = `${i + 1}. "${p.title}" (${p.year})`;
+      if (p.abstract) {
+        entry += `\n   Abstract: ${p.abstract.substring(0, 250)}${p.abstract.length > 250 ? '...' : ''}`;
+      }
+      return entry;
+    })
+    .join('\n\n');
 
   const prompt = `Compare the methodological approaches in these research papers on "${topic}".
 
@@ -367,10 +443,20 @@ Respond in this exact JSON format:
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
-    const parsed = JSON.parse(jsonMatch[0]) as LLMComparisonAnalysis;
-    return parsed;
+    const raw = JSON.parse(jsonMatch[0]);
+    const validated = comparisonSchema.safeParse(raw);
+    if (!validated.success) {
+      log.warn('LLM comparison validation failed', { issues: validated.error.issues });
+      return {
+        methodologies: raw.methodologies || [],
+        contradictions: raw.contradictions || [],
+        commonApproaches: raw.commonApproaches || [],
+        uniqueContributions: raw.uniqueContributions || []
+      } as LLMComparisonAnalysis;
+    }
+    return validated.data as LLMComparisonAnalysis;
   } catch (error) {
-    console.error('Failed to parse comparison response:', error);
+    log.error('Failed to parse comparison response', { error: String(error) });
     return null;
   }
 }
@@ -385,8 +471,14 @@ export async function suggestDirections(
 ): Promise<LLMDirectionSuggestion[] | null> {
   const papersText = papers
     .slice(0, 10)
-    .map((p, i) => `${i + 1}. "${p.title}" (${p.year})`)
-    .join('\n');
+    .map((p, i) => {
+      let entry = `${i + 1}. "${p.title}" (${p.year})`;
+      if (p.abstract) {
+        entry += `\n   Abstract: ${p.abstract.substring(0, 200)}${p.abstract.length > 200 ? '...' : ''}`;
+      }
+      return entry;
+    })
+    .join('\n\n');
 
   const gapsText = gaps
     .slice(0, 5)
@@ -444,10 +536,24 @@ Respond in this exact JSON format:
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
-    const parsed = JSON.parse(jsonMatch[0]) as { directions: LLMDirectionSuggestion[] };
-    return parsed.directions || null;
+    const raw = JSON.parse(jsonMatch[0]);
+    const validated = directionsSchema.safeParse(raw);
+    if (!validated.success) {
+      log.warn('LLM directions validation failed', { issues: validated.error.issues });
+      // Fall back to partial data
+      const dirs = raw.directions || [];
+      return dirs.map((d: any) => ({
+        title: d.title || 'Unknown Direction',
+        description: d.description || '',
+        rationale: d.rationale || '',
+        methodology: d.methodology || '',
+        feasibility: d.feasibility || 'medium',
+        novelty: d.novelty || 'medium'
+      })) as LLMDirectionSuggestion[];
+    }
+    return validated.data.directions as LLMDirectionSuggestion[];
   } catch (error) {
-    console.error('Failed to parse direction suggestions:', error);
+    log.error('Failed to parse direction suggestions', { error: String(error) });
     return null;
   }
 }

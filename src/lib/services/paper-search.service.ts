@@ -1,6 +1,7 @@
 import type { Paper } from '../types';
-import { searchScopus, lookupByDoi as lookupByDoiScopus, processDOIList as processDOIListScopus, cleanDoi } from './scopus.service';
+import { searchScopus, lookupByDoi as lookupByDoiScopus, processDOIList as processDOIListScopus } from './scopus.service';
 import { searchOpenAlex, lookupByDoiOpenAlex, processDOIListOpenAlex } from './openalex.service';
+import { cleanDoi } from '../utils/file-utils';
 
 export interface SearchParams {
   query: string;
@@ -54,4 +55,4 @@ export async function processDOIList(
 }
 
 // Re-export cleanDoi for convenience
-export { cleanDoi } from './scopus.service';
+export { cleanDoi } from '../utils/file-utils';

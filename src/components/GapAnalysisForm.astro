@@ -24,6 +24,8 @@ import Tooltip from './Tooltip.astro';
           class="form-input topic-input"
           autocomplete="off"
         />
+        <div class="gap-autocomplete-dropdown" id="gap-autocomplete-dropdown"></div>
+        <div class="gap-history-dropdown" id="gap-history-dropdown"></div>
         <div class="input-accent"></div>
       </div>
       <div class="input-footer">
@@ -175,6 +177,7 @@ import Tooltip from './Tooltip.astro';
     </div>
     <button type="submit" class="submit-btn" id="gap-submit-btn">
       <span class="btn-text">Start Analysis</span>
+      <span class="btn-shortcut">Ctrl+Enter</span>
       <span class="btn-icon">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M4 10h12M12 6l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -639,6 +642,13 @@ import Tooltip from './Tooltip.astro';
     transform: none;
   }
 
+  .btn-shortcut {
+    font-size: 0.6875rem;
+    opacity: 0.5;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
   .btn-icon {
     transition: transform 0.2s ease;
   }
@@ -669,6 +679,158 @@ import Tooltip from './Tooltip.astro';
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+
+  /* Gap Autocomplete */
+  .gap-autocomplete-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-gap-surface);
+    border: 2px solid var(--color-gap-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(20, 26, 24, 0.1);
+    z-index: 11;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .gap-autocomplete-dropdown.visible {
+    display: block;
+  }
+
+  .gap-ac-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid var(--color-gap-border);
+  }
+
+  .gap-ac-item:last-child {
+    border-bottom: none;
+  }
+
+  .gap-ac-item:hover,
+  .gap-ac-item.selected {
+    background: var(--color-gap-bg-deep);
+  }
+
+  .gap-ac-name {
+    font-size: 0.875rem;
+    color: var(--color-gap-text);
+  }
+
+  .gap-ac-count {
+    font-size: 0.6875rem;
+    color: var(--color-gap-text-muted);
+    white-space: nowrap;
+  }
+
+  /* Gap History Dropdown */
+  .gap-history-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-gap-surface);
+    border: 2px solid var(--color-gap-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(20, 26, 24, 0.1);
+    z-index: 10;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .gap-history-dropdown.visible {
+    display: block;
+  }
+
+  .gap-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--color-gap-border);
+  }
+
+  .gap-history-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-gap-text-muted);
+  }
+
+  .gap-history-clear {
+    background: none;
+    border: none;
+    font-size: 0.6875rem;
+    color: var(--color-gap-text-muted);
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .gap-history-clear:hover {
+    color: var(--color-error);
+  }
+
+  .gap-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid var(--color-gap-border);
+  }
+
+  .gap-history-item:last-child {
+    border-bottom: none;
+  }
+
+  .gap-history-item:hover {
+    background: var(--color-gap-bg-deep);
+  }
+
+  .gap-history-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .gap-history-topic {
+    font-size: 0.875rem;
+    color: var(--color-gap-text);
+  }
+
+  .gap-history-meta {
+    font-size: 0.6875rem;
+    color: var(--color-gap-text-muted);
+  }
+
+  .gap-history-remove {
+    background: none;
+    border: none;
+    color: var(--color-gap-text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+  }
+
+  .gap-history-remove:hover {
+    color: var(--color-error);
+    background: rgba(155, 68, 68, 0.1);
+  }
 </style>
 
 <script>
@@ -688,6 +850,8 @@ import Tooltip from './Tooltip.astro';
     if (charCount) charCount.textContent = `${count}/200`;
     validateTopic();
     updateTimeEstimate();
+    // Hide history dropdown when typing
+    document.getElementById('gap-history-dropdown')?.classList.remove('visible');
   });
 
   // Advanced toggle
@@ -889,6 +1053,9 @@ import Tooltip from './Tooltip.astro';
         throw new Error(data.error || 'Analysis failed');
       }
 
+      // Save to gap analysis history
+      saveGapHistory({ topic, depth, papers });
+
       // Dispatch event with task ID for progress tracking
       window.dispatchEvent(new CustomEvent('gapAnalysisStarted', {
         detail: { taskId: data.taskId, topic }
@@ -900,6 +1067,180 @@ import Tooltip from './Tooltip.astro';
       submitBtn.disabled = false;
       submitBtn.classList.remove('loading');
     }
+  });
+
+  // --- Autocomplete ---
+  const gapAcDropdown = document.getElementById('gap-autocomplete-dropdown');
+  let gapAcDebounce: ReturnType<typeof setTimeout>;
+  let gapAcIdx = -1;
+
+  topicInput?.addEventListener('input', () => {
+    clearTimeout(gapAcDebounce);
+    const q = topicInput.value.trim();
+    if (q.length < 2) {
+      gapAcDropdown?.classList.remove('visible');
+      return;
+    }
+    gapAcDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+        const suggestions: { name: string; works: number }[] = await res.json();
+        if (suggestions.length === 0 || topicInput.value.trim() !== q) {
+          gapAcDropdown?.classList.remove('visible');
+          return;
+        }
+        renderGapAc(suggestions);
+      } catch { /* ignore */ }
+    }, 250);
+  });
+
+  function renderGapAc(suggestions: { name: string; works: number }[]) {
+    if (!gapAcDropdown) return;
+    gapAcIdx = -1;
+    gapAcDropdown.innerHTML = suggestions.map((s, i) =>
+      `<div class="gap-ac-item" data-idx="${i}" data-name="${s.name.replace(/"/g, '&quot;')}">
+        <span class="gap-ac-name">${s.name}</span>
+        <span class="gap-ac-count">${fmtCount(s.works)} papers</span>
+      </div>`
+    ).join('');
+    gapAcDropdown.classList.add('visible');
+
+    gapAcDropdown.querySelectorAll('.gap-ac-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        topicInput.value = (item as HTMLElement).getAttribute('data-name') || '';
+        if (charCount) charCount.textContent = `${topicInput.value.length}/200`;
+        gapAcDropdown.classList.remove('visible');
+      });
+    });
+  }
+
+  function fmtCount(n: number): string {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return n.toString();
+  }
+
+  topicInput?.addEventListener('keydown', (e) => {
+    if (!gapAcDropdown?.classList.contains('visible')) return;
+    const items = gapAcDropdown.querySelectorAll('.gap-ac-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      gapAcIdx = Math.min(gapAcIdx + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('selected', i === gapAcIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      gapAcIdx = Math.max(gapAcIdx - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('selected', i === gapAcIdx));
+    } else if (e.key === 'Enter' && gapAcIdx >= 0) {
+      e.preventDefault();
+      topicInput.value = (items[gapAcIdx] as HTMLElement).getAttribute('data-name') || '';
+      if (charCount) charCount.textContent = `${topicInput.value.length}/200`;
+      gapAcDropdown.classList.remove('visible');
+    } else if (e.key === 'Escape') {
+      gapAcDropdown.classList.remove('visible');
+    }
+  });
+
+  topicInput?.addEventListener('blur', () => {
+    setTimeout(() => gapAcDropdown?.classList.remove('visible'), 200);
+  });
+
+  // --- Gap Analysis History ---
+  const GAP_HISTORY_KEY = 'jfinder_gap_history';
+  const GAP_MAX_HISTORY = 10;
+  const gapHistoryDropdown = document.getElementById('gap-history-dropdown');
+
+  function getGapHistory(): Array<{ topic: string; depth: string; papers: number; timestamp: number }> {
+    try {
+      return JSON.parse(localStorage.getItem(GAP_HISTORY_KEY) || '[]');
+    } catch { return []; }
+  }
+
+  function saveGapHistory(entry: { topic: string; depth: string; papers: number }) {
+    const history = getGapHistory().filter(h => h.topic !== entry.topic);
+    history.unshift({ ...entry, timestamp: Date.now() });
+    localStorage.setItem(GAP_HISTORY_KEY, JSON.stringify(history.slice(0, GAP_MAX_HISTORY)));
+  }
+
+  function removeGapHistoryItem(topic: string) {
+    const history = getGapHistory().filter(h => h.topic !== topic);
+    localStorage.setItem(GAP_HISTORY_KEY, JSON.stringify(history));
+    renderGapHistory();
+  }
+
+  function clearGapHistory() {
+    localStorage.removeItem(GAP_HISTORY_KEY);
+    renderGapHistory();
+  }
+
+  function renderGapHistory() {
+    if (!gapHistoryDropdown) return;
+    const history = getGapHistory();
+
+    if (history.length === 0) {
+      gapHistoryDropdown.classList.remove('visible');
+      return;
+    }
+
+    gapHistoryDropdown.innerHTML = `
+      <div class="gap-history-header">
+        <span class="gap-history-label">Recent Analyses</span>
+        <button class="gap-history-clear" type="button">Clear All</button>
+      </div>
+      ${history.map(h => `
+        <div class="gap-history-item" data-topic="${h.topic.replace(/"/g, '&quot;')}" data-depth="${h.depth}" data-papers="${h.papers}">
+          <div class="gap-history-item-text">
+            <span class="gap-history-topic">${h.topic}</span>
+            <span class="gap-history-meta">${h.depth} · ${h.papers} papers · ${new Date(h.timestamp).toLocaleDateString()}</span>
+          </div>
+          <button class="gap-history-remove" data-topic="${h.topic.replace(/"/g, '&quot;')}" type="button" title="Remove">×</button>
+        </div>
+      `).join('')}
+    `;
+
+    gapHistoryDropdown.querySelector('.gap-history-clear')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearGapHistory();
+    });
+
+    gapHistoryDropdown.querySelectorAll('.gap-history-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).classList.contains('gap-history-remove')) return;
+        const topic = item.getAttribute('data-topic') || '';
+        const depth = item.getAttribute('data-depth') || 'quick';
+        const papers = item.getAttribute('data-papers') || '30';
+        topicInput.value = topic;
+        papersInput.value = papers;
+        // Set depth radio
+        const depthRadio = document.querySelector(`input[name="depth"][value="${depth}"]`) as HTMLInputElement;
+        if (depthRadio) depthRadio.checked = true;
+        if (charCount) charCount.textContent = `${topic.length}/200`;
+        updateStepperButtons();
+        updateTimeEstimate();
+        gapHistoryDropdown.classList.remove('visible');
+      });
+    });
+
+    gapHistoryDropdown.querySelectorAll('.gap-history-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const topic = (btn as HTMLElement).getAttribute('data-topic') || '';
+        removeGapHistoryItem(topic);
+      });
+    });
+  }
+
+  topicInput?.addEventListener('focus', () => {
+    const history = getGapHistory();
+    if (history.length > 0 && !topicInput.value) {
+      renderGapHistory();
+      gapHistoryDropdown?.classList.add('visible');
+    }
+  });
+
+  topicInput?.addEventListener('blur', () => {
+    setTimeout(() => gapHistoryDropdown?.classList.remove('visible'), 200);
   });
 
   // Initial setup

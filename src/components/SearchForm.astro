@@ -6,13 +6,17 @@
   <div class="form-section">
     <div class="input-group input-group-topic">
       <label for="topic">Research Topic</label>
-      <input
-        type="text"
-        id="topic"
-        name="topic"
-        placeholder="e.g., machine learning in drug discovery"
-        autocomplete="off"
-      />
+      <div class="topic-input-wrapper">
+        <input
+          type="text"
+          id="topic"
+          name="topic"
+          placeholder="e.g., machine learning in drug discovery"
+          autocomplete="off"
+        />
+        <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
+        <div class="search-history-dropdown" id="search-history-dropdown"></div>
+      </div>
     </div>
 
     <div class="divider">
@@ -104,6 +108,7 @@
     <button type="submit" class="btn btn-primary btn-submit">
       <span class="btn-content">
         <span class="btn-text">Start Search</span>
+        <span class="btn-shortcut">Ctrl+Enter</span>
         <span class="btn-icon">→</span>
       </span>
       <span class="btn-loader">
@@ -380,6 +385,13 @@
     font-size: 1rem;
   }
 
+  .btn-submit .btn-shortcut {
+    font-size: 0.6875rem;
+    opacity: 0.5;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
   .btn-submit .btn-content .btn-icon {
     transition: transform var(--transition-fast);
   }
@@ -390,6 +402,162 @@
 
   .btn-submit:disabled {
     pointer-events: none;
+  }
+
+  /* Autocomplete */
+  .autocomplete-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 11;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .autocomplete-dropdown.visible {
+    display: block;
+  }
+
+  .autocomplete-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+
+  .autocomplete-item:hover,
+  .autocomplete-item.selected {
+    background: var(--color-bg-warm);
+  }
+
+  .autocomplete-name {
+    font-size: 0.875rem;
+    color: var(--color-text);
+  }
+
+  .autocomplete-count {
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  /* Search History */
+  .topic-input-wrapper {
+    position: relative;
+  }
+
+  .search-history-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .search-history-dropdown.visible {
+    display: block;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .history-item:last-child {
+    border-bottom: none;
+  }
+
+  .history-item:hover {
+    background: var(--color-bg-warm);
+  }
+
+  .history-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .history-topic {
+    font-size: 0.875rem;
+    color: var(--color-text);
+  }
+
+  .history-meta {
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+  }
+
+  .history-remove {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+  }
+
+  .history-remove:hover {
+    color: var(--color-error);
+    background: rgba(155, 68, 68, 0.1);
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .history-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+  }
+
+  .history-clear {
+    background: none;
+    border: none;
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .history-clear:hover {
+    color: var(--color-error);
   }
 </style>
 
@@ -493,6 +661,11 @@
         throw new Error(data.error || 'Search failed');
       }
 
+      // Save to search history
+      if (topic) {
+        saveSearchHistory({ topic, papers: parseInt(papersInput.value) || 20 });
+      }
+
       // Dispatch custom event with task ID
       window.dispatchEvent(new CustomEvent('searchStarted', {
         detail: { taskId: data.taskId }
@@ -502,6 +675,179 @@
       submitBtn.disabled = false;
       submitBtn.classList.remove('loading');
     }
+  });
+
+  // --- Autocomplete ---
+  const acDropdown = document.getElementById('autocomplete-dropdown');
+  let acDebounce: ReturnType<typeof setTimeout>;
+  let acSelectedIdx = -1;
+
+  topicInput?.addEventListener('input', () => {
+    clearTimeout(acDebounce);
+    const q = topicInput.value.trim();
+    if (q.length < 2) {
+      acDropdown?.classList.remove('visible');
+      return;
+    }
+    acDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+        const suggestions: { name: string; works: number }[] = await res.json();
+        if (suggestions.length === 0 || topicInput.value.trim() !== q) {
+          acDropdown?.classList.remove('visible');
+          return;
+        }
+        renderAutocomplete(suggestions);
+      } catch { /* ignore */ }
+    }, 250);
+  });
+
+  function renderAutocomplete(suggestions: { name: string; works: number }[]) {
+    if (!acDropdown) return;
+    acSelectedIdx = -1;
+    acDropdown.innerHTML = suggestions.map((s, i) =>
+      `<div class="autocomplete-item" data-idx="${i}" data-name="${s.name.replace(/"/g, '&quot;')}">
+        <span class="autocomplete-name">${s.name}</span>
+        <span class="autocomplete-count">${formatCount(s.works)} papers</span>
+      </div>`
+    ).join('');
+    acDropdown.classList.add('visible');
+
+    acDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        topicInput.value = (item as HTMLElement).getAttribute('data-name') || '';
+        acDropdown.classList.remove('visible');
+      });
+    });
+  }
+
+  function formatCount(n: number): string {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return n.toString();
+  }
+
+  topicInput?.addEventListener('keydown', (e) => {
+    if (!acDropdown?.classList.contains('visible')) return;
+    const items = acDropdown.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      acSelectedIdx = Math.min(acSelectedIdx + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('selected', i === acSelectedIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      acSelectedIdx = Math.max(acSelectedIdx - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('selected', i === acSelectedIdx));
+    } else if (e.key === 'Enter' && acSelectedIdx >= 0) {
+      e.preventDefault();
+      topicInput.value = (items[acSelectedIdx] as HTMLElement).getAttribute('data-name') || '';
+      acDropdown.classList.remove('visible');
+    } else if (e.key === 'Escape') {
+      acDropdown.classList.remove('visible');
+    }
+  });
+
+  topicInput?.addEventListener('blur', () => {
+    setTimeout(() => acDropdown?.classList.remove('visible'), 200);
+  });
+
+  // --- Search History ---
+  const HISTORY_KEY = 'jfinder_search_history';
+  const MAX_HISTORY = 10;
+  const historyDropdown = document.getElementById('search-history-dropdown');
+
+  function getSearchHistory(): Array<{ topic: string; timestamp: number; papers: number }> {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    } catch { return []; }
+  }
+
+  function saveSearchHistory(entry: { topic: string; papers: number }) {
+    const history = getSearchHistory().filter(h => h.topic !== entry.topic);
+    history.unshift({ ...entry, timestamp: Date.now() });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
+  }
+
+  function removeHistoryItem(topic: string) {
+    const history = getSearchHistory().filter(h => h.topic !== topic);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    renderSearchHistory();
+  }
+
+  function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+    renderSearchHistory();
+  }
+
+  function renderSearchHistory() {
+    if (!historyDropdown) return;
+    const history = getSearchHistory();
+
+    if (history.length === 0) {
+      historyDropdown.classList.remove('visible');
+      return;
+    }
+
+    historyDropdown.innerHTML = `
+      <div class="history-header">
+        <span class="history-label">Recent Searches</span>
+        <button class="history-clear" type="button">Clear All</button>
+      </div>
+      ${history.map(h => `
+        <div class="history-item" data-topic="${h.topic.replace(/"/g, '&quot;')}" data-papers="${h.papers}">
+          <div class="history-item-text">
+            <span class="history-topic">${h.topic}</span>
+            <span class="history-meta">${h.papers} papers · ${new Date(h.timestamp).toLocaleDateString()}</span>
+          </div>
+          <button class="history-remove" data-topic="${h.topic.replace(/"/g, '&quot;')}" type="button" title="Remove">×</button>
+        </div>
+      `).join('')}
+    `;
+
+    // Bind events
+    historyDropdown.querySelector('.history-clear')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearHistory();
+    });
+
+    historyDropdown.querySelectorAll('.history-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).classList.contains('history-remove')) return;
+        const topic = item.getAttribute('data-topic') || '';
+        const papers = item.getAttribute('data-papers') || '20';
+        topicInput.value = topic;
+        papersInput.value = papers;
+        historyDropdown.classList.remove('visible');
+      });
+    });
+
+    historyDropdown.querySelectorAll('.history-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const topic = (btn as HTMLElement).getAttribute('data-topic') || '';
+        removeHistoryItem(topic);
+      });
+    });
+  }
+
+  // Show history on focus (if there are entries)
+  topicInput?.addEventListener('focus', () => {
+    const history = getSearchHistory();
+    if (history.length > 0 && !topicInput.value) {
+      renderSearchHistory();
+      historyDropdown?.classList.add('visible');
+    }
+  });
+
+  // Hide history on blur (with delay for click)
+  topicInput?.addEventListener('blur', () => {
+    setTimeout(() => historyDropdown?.classList.remove('visible'), 200);
+  });
+
+  // Hide when typing
+  topicInput?.addEventListener('input', () => {
+    historyDropdown?.classList.remove('visible');
   });
 
   // Listen for reset event to re-enable form

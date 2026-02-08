@@ -23,7 +23,21 @@ import GapResults from '../components/GapResults.astro';
             <a href="/features" class="nav-link">Features</a>
           </nav>
         </div>
-        <ModeToggle />
+        <div class="header-right">
+          <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+            <svg class="theme-icon theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg class="theme-icon theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <ModeToggle />
+        </div>
       </div>
     </header>
 
@@ -125,6 +139,48 @@ import GapResults from '../components/GapResults.astro';
     display: flex;
     align-items: center;
     gap: 1.5rem;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .theme-toggle:hover {
+    color: var(--color-accent);
+    border-color: var(--color-text-muted);
+    background: var(--color-bg-warm);
+  }
+
+  .main[data-mode="gap"] .theme-toggle:hover {
+    color: var(--color-gap-accent);
+  }
+
+  .theme-icon-dark {
+    display: none;
+  }
+
+  :global([data-theme="dark"]) .theme-icon-light {
+    display: none;
+  }
+
+  :global([data-theme="dark"]) .theme-icon-dark {
+    display: block;
   }
 
   .header-brand {
@@ -412,6 +468,19 @@ import GapResults from '../components/GapResults.astro';
     window.history.replaceState({}, '', url.toString());
   }
 
+  // Theme toggle
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle?.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const newTheme = isDark ? 'light' : 'dark';
+    if (newTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    localStorage.setItem('jfinder-theme', newTheme);
+  });
+
   // Check URL parameters for initial mode
   const urlParams = new URLSearchParams(window.location.search);
   const initialMode = urlParams.get('mode');
@@ -482,5 +551,52 @@ import GapResults from '../components/GapResults.astro';
   // Legacy event - redirect to new one
   window.addEventListener('resetGapForm', () => {
     window.dispatchEvent(new CustomEvent('gapAnalysisReset'));
+  });
+
+  // ===================================
+  // Keyboard Shortcuts
+  // ===================================
+
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+Enter: Submit active form
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      const mode = mainApp?.getAttribute('data-mode');
+      if (mode === 'download') {
+        const form = document.getElementById('searchForm') as HTMLFormElement;
+        const btn = form?.querySelector('.btn-submit') as HTMLButtonElement;
+        if (form && btn && !btn.disabled) {
+          form.requestSubmit();
+        }
+      } else if (mode === 'gap') {
+        const form = document.getElementById('gap-analysis-form') as HTMLFormElement;
+        const btn = document.getElementById('gap-submit-btn') as HTMLButtonElement;
+        if (form && btn && !btn.disabled) {
+          form.requestSubmit();
+        }
+      }
+    }
+
+    // Escape: Close active modals, or cancel autocomplete
+    if (e.key === 'Escape') {
+      // Close modals first
+      const modals = document.querySelectorAll('.refine-modal.active, .download-progress-modal.active, .related-papers-modal.active');
+      if (modals.length > 0) {
+        modals.forEach(m => m.classList.remove('active'));
+        return;
+      }
+
+      // Close autocomplete dropdowns
+      const dropdowns = document.querySelectorAll('.autocomplete-dropdown, .gap-autocomplete-dropdown');
+      dropdowns.forEach(d => { (d as HTMLElement).style.display = 'none'; });
+    }
+
+    // Tab: Switch between modes
+    if (e.altKey && e.key === 't') {
+      e.preventDefault();
+      const mode = mainApp?.getAttribute('data-mode');
+      const newMode = mode === 'download' ? 'gap' : 'download';
+      switchMode(newMode);
+      window.dispatchEvent(new CustomEvent('setMode', { detail: { mode: newMode } }));
+    }
   });
 </script>

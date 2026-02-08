@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { readdir, readFile, writeFile } from 'fs/promises';
 import { join, basename } from 'path';
+import { logger } from './logger';
 
 /**
  * Create a ZIP archive from a task directory
@@ -76,7 +77,7 @@ export async function createZipFromFiles(
       const name = file.name || basename(file.path);
       zip.file(name, content);
     } catch (error) {
-      console.error(`Failed to add file to ZIP: ${file.path}`, error);
+      logger.error('Failed to add file to ZIP', { path: file.path, error: String(error) });
     }
   }
 

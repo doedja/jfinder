@@ -6,6 +6,10 @@ import { downloadFromUnpaywall } from './unpaywall.service';
 import { env } from '../env';
 import { mkdir, writeFile as fsWriteFile } from 'fs/promises';
 import { join } from 'path';
+import { createSafeFilename } from '../utils/file-utils';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'download' });
 
 /**
  * Determine which download sources are enabled based on configuration
@@ -27,20 +31,7 @@ function getEnabledSources(): DownloadSource[] {
 export const defaultEnabledSources = getEnabledSources();
 
 // Log enabled sources on startup
-console.log(`Download sources enabled: ${defaultEnabledSources.join(', ')}`);
-
-/**
- * Create a safe filename from a paper title
- */
-export function createSafeFilename(title: string, maxLength = 100): string {
-  return title
-    .replace(/[^a-zA-Z0-9 \-_]/g, '_')
-    .replace(/\s+/g, '_')
-    .replace(/_+/g, '_')
-    .substring(0, maxLength)
-    .trim()
-    .replace(/_$/, '');
-}
+log.info('Download sources enabled', { sources: defaultEnabledSources });
 
 /**
  * Ensure directory exists
@@ -61,7 +52,7 @@ async function downloadFromOpenAlexOA(paper: Paper): Promise<Buffer | null> {
     return null;
   }
 
-  console.log(`[${paper.doi}] Trying OpenAlex OA URL: ${paper.openAccessUrl}`);
+  log.debug('Trying OpenAlex OA URL', { doi: paper.doi, url: paper.openAccessUrl });
 
   try {
     const controller = new AbortController();
@@ -86,20 +77,20 @@ async function downloadFromOpenAlexOA(paper: Paper): Promise<Buffer | null> {
 
     // Validate it's a PDF
     if (buffer.slice(0, 4).toString() === '%PDF') {
-      console.log(`[${paper.doi}] Successfully downloaded from OpenAlex OA`);
+      log.debug('Downloaded from OpenAlex OA', { doi: paper.doi });
       return buffer;
     }
 
     return null;
   } catch (error) {
-    console.error(`[${paper.doi}] OpenAlex OA download error:`, error);
+    log.debug('OpenAlex OA download error', { doi: paper.doi, error: String(error) });
     return null;
   }
 }
 
 interface DownloadAttempt {
   source: DownloadSource;
-  download: () => Promise<Buffer | null>;
+  download: (signal?: AbortSignal) => Promise<Buffer | null>;
 }
 
 /**
@@ -156,7 +147,7 @@ function createDownloadAttempts(
 
 /**
  * Race multiple download sources in parallel
- * Returns the first successful result
+ * Returns the first successful result and cancels remaining downloads
  */
 async function raceDownloads(
   attempts: DownloadAttempt[]
@@ -165,30 +156,51 @@ async function raceDownloads(
     return null;
   }
 
-  // Create promises that resolve with source info on success
+  const controller = new AbortController();
+
+  // Create promises that resolve with source info on success, or null on failure
   const promises = attempts.map(async (attempt) => {
     try {
-      const buffer = await attempt.download();
-      if (buffer) {
+      if (controller.signal.aborted) return null;
+      const buffer = await attempt.download(controller.signal);
+      if (buffer && !controller.signal.aborted) {
         return { buffer, source: attempt.source };
       }
       return null;
     } catch (error) {
-      console.error(`Download error from ${attempt.source}:`, error);
+      if (error instanceof Error && error.name === 'AbortError') return null;
+      log.debug('Download source error', { source: attempt.source, error: String(error) });
       return null;
     }
   });
 
-  // Wait for all to complete and find first success
-  const results = await Promise.all(promises);
+  // Use Promise.race-style: resolve as soon as any source succeeds
+  try {
+    const result = await new Promise<{ buffer: Buffer; source: DownloadSource } | null>((resolve) => {
+      let completedCount = 0;
 
-  for (const result of results) {
-    if (result) {
-      return result;
+      promises.forEach(promise => {
+        promise.then(result => {
+          if (result && !controller.signal.aborted) {
+            controller.abort(); // Cancel remaining downloads
+            resolve(result);
+          } else {
+            completedCount++;
+            if (completedCount === promises.length) {
+              resolve(null); // All sources failed
+            }
+          }
+        });
+      });
+    });
+
+    return result;
+  } finally {
+    // Ensure cleanup
+    if (!controller.signal.aborted) {
+      controller.abort();
     }
   }
-
-  return null;
 }
 
 /**
@@ -198,7 +210,7 @@ export async function downloadPaper(
   paper: Paper,
   enabledSources: DownloadSource[] = defaultEnabledSources
 ): Promise<DownloadResult> {
-  console.log(`[${paper.doi}] Starting parallel download from ${enabledSources.length} sources`);
+  log.debug('Starting parallel download', { doi: paper.doi, sources: enabledSources.length });
 
   const attempts = createDownloadAttempts(paper, enabledSources);
 
@@ -232,7 +244,7 @@ export async function downloadAndSavePaper(
   outputDir: string,
   enabledSources: DownloadSource[] = defaultEnabledSources
 ): Promise<DownloadResult> {
-  console.log(`[${paper.doi}] Starting parallel download from ${enabledSources.length} sources`);
+  log.debug('Starting parallel download', { doi: paper.doi, sources: enabledSources.length });
 
   const attempts = createDownloadAttempts(paper, enabledSources);
 
@@ -291,7 +303,7 @@ export async function downloadPapers(
   const successful: string[] = [];
   const failed: FailedDownload[] = [];
 
-  console.log(`Starting download of ${papers.length} papers using sources: ${enabledSources.join(', ')}`);
+  log.info('Batch download starting', { count: papers.length, sources: enabledSources });
 
   for (let i = 0; i < papers.length; i++) {
     const paper = papers[i];
@@ -310,14 +322,14 @@ export async function downloadPapers(
 
     if (result.success && result.filePath) {
       successful.push(result.filePath);
-      console.log(`[${i + 1}/${papers.length}] Downloaded: ${paper.title.substring(0, 50)}... (${result.source})`);
+      log.info('Paper downloaded', { idx: `${i + 1}/${papers.length}`, source: result.source, doi: paper.doi });
     } else {
       failed.push({
         paper,
         error: result.error || 'Unknown error',
         attemptedSources: enabledSources
       });
-      console.log(`[${i + 1}/${papers.length}] Failed: ${paper.title.substring(0, 50)}...`);
+      log.warn('Paper download failed', { idx: `${i + 1}/${papers.length}`, doi: paper.doi });
     }
 
     onProgress?.(i + 1, papers.length, paper, result.success);
@@ -328,7 +340,7 @@ export async function downloadPapers(
     }
   }
 
-  console.log(`Download complete: ${successful.length} successful, ${failed.length} failed`);
+  log.info('Batch download complete', { success: successful.length, failed: failed.length });
 
   return { successful, failed };
 }
@@ -357,6 +369,9 @@ export function generateMetadata(
     content += `   DOI: ${paper.doi}\n`;
     if (paper.openAccessUrl) {
       content += `   Open Access: ${paper.openAccessUrl}\n`;
+    }
+    if (paper.abstract) {
+      content += `   Abstract: ${paper.abstract.substring(0, 500)}${paper.abstract.length > 500 ? '...' : ''}\n`;
     }
     content += '\n';
   });

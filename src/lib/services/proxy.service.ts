@@ -1,4 +1,7 @@
 import { env } from '../env';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'proxy' });
 
 export interface ProxyConfig {
   http: string;
@@ -26,7 +29,7 @@ class ProxyService {
       const response = await fetch(env.PROXY_URL);
 
       if (!response.ok) {
-        console.error(`Failed to fetch proxy list: ${response.status}`);
+        log.error('Failed to fetch proxy list', { status: response.status });
         return;
       }
 
@@ -49,9 +52,9 @@ class ProxyService {
 
       this.proxies = newProxies;
       this.lastRefresh = new Date();
-      console.log(`Loaded ${this.proxies.length} proxies`);
+      log.info('Proxies loaded', { count: this.proxies.length });
     } catch (error) {
-      console.error('Error fetching proxy list:', error);
+      log.error('Error fetching proxy list', { error: String(error) });
     }
   }
 

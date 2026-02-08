@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { gapTaskManager } from '../../../lib/tasks/gap-task-manager';
+import { isValidTaskId } from '../../../lib/utils/file-utils';
 
 export const GET: APIRoute = async ({ params }) => {
   const taskId = params.taskId;
@@ -7,6 +8,13 @@ export const GET: APIRoute = async ({ params }) => {
   if (!taskId) {
     return new Response(
       JSON.stringify({ error: 'Task ID required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (!isValidTaskId(taskId)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid task ID format' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }

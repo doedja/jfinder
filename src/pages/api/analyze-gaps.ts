@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { gapTaskManager } from '../../lib/tasks/gap-task-manager';
 import { processGapAnalysis } from '../../lib/tasks/gap-analysis-processor';
 import type { AnalysisType, AnalysisDepth } from '../../lib/types/gap-analysis';
+import { checkRateLimit, releaseTask } from '../../lib/utils/rate-limiter';
+import { logger } from '../../lib/utils/logger';
 
 const gapAnalysisSchema = z.object({
   topic: z.string().min(1, 'Topic is required'),
@@ -14,6 +16,19 @@ const gapAnalysisSchema = z.object({
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    // Rate limiting
+    const rateLimitResponse = checkRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
+    // Concurrent task limit
+    if (gapTaskManager.activeTaskCount >= 5) {
+      releaseTask(request);
+      return new Response(
+        JSON.stringify({ error: 'Server is busy. Please try again later.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const body = await request.json();
     const parsed = gapAnalysisSchema.safeParse(body);
 
@@ -42,9 +57,9 @@ export const POST: APIRoute = async ({ request }) => {
       yearFilter,
       depth: depth as AnalysisDepth
     }).catch(err => {
-      console.error('Gap analysis error:', err);
+      logger.error('Gap analysis error', { taskId, error: String(err) });
       gapTaskManager.failGapTask(taskId, 'Analysis failed');
-    });
+    }).finally(() => releaseTask(request));
 
     return new Response(
       JSON.stringify({ taskId }),
@@ -54,7 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
     );
   } catch (error) {
-    console.error('Gap analysis endpoint error:', error);
+    logger.error('Gap analysis endpoint error', { error: String(error) });
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

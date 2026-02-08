@@ -36,6 +36,10 @@
   --color-gap-text-secondary: #4e5c57;
   --color-gap-text-muted: #7a8a84;
 
+  /* Focus rings */
+  --color-focus-ring: rgba(139, 90, 43, 0.1);
+  --color-gap-focus-ring: rgba(43, 90, 74, 0.1);
+
   /* Typography */
   --font-display: 'Instrument Serif', Georgia, serif;
   --font-body: 'DM Sans', -apple-system, sans-serif;
@@ -65,6 +69,55 @@
   --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ===================================
+   Dark Mode
+   =================================== */
+
+[data-theme="dark"] {
+  /* Colors - Warm scholarly palette (Download Mode) */
+  --color-bg: #1a1814;
+  --color-bg-warm: #201e18;
+  --color-surface: #252219;
+  --color-surface-elevated: #2a2720;
+
+  --color-text: #e8e4dc;
+  --color-text-secondary: #b0a898;
+  --color-text-muted: #7a7268;
+
+  --color-accent: #c4956a;
+  --color-accent-light: #d4a87a;
+  --color-accent-dark: #a47a50;
+
+  --color-border: #3a3630;
+  --color-border-light: #2e2a24;
+
+  --color-success: #6ba87a;
+  --color-error: #c06060;
+  --color-warning: #c4a855;
+
+  /* Gap Analysis Mode - Cool sage palette (dark) */
+  --color-gap-bg: #141a18;
+  --color-gap-bg-deep: #1a201e;
+  --color-gap-surface: #1e2422;
+  --color-gap-accent: #5a9b80;
+  --color-gap-accent-light: #70b090;
+  --color-gap-accent-dark: #3d7a60;
+  --color-gap-border: #2a3632;
+  --color-gap-text: #dce4e0;
+  --color-gap-text-secondary: #98b0a5;
+  --color-gap-text-muted: #688078;
+
+  /* Focus rings */
+  --color-focus-ring: rgba(196, 149, 106, 0.25);
+  --color-gap-focus-ring: rgba(90, 155, 128, 0.25);
+
+  /* Shadows - stronger for dark backgrounds */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -74,6 +127,11 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {
@@ -97,6 +155,10 @@ body::before {
   opacity: 0.025;
   pointer-events: none;
   z-index: 9999;
+}
+
+[data-theme="dark"] body::before {
+  opacity: 0.04;
 }
 
 /* Typography */
@@ -157,7 +219,7 @@ textarea {
 input:focus,
 textarea:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.1);
+  box-shadow: 0 0 0 3px var(--color-focus-ring, rgba(139, 90, 43, 0.1));
 }
 
 input::placeholder {
@@ -221,6 +283,11 @@ input::placeholder {
   border: none;
   border-radius: var(--radius-lg);
   box-shadow: 0 1px 3px rgba(26, 24, 20, 0.04), 0 4px 12px rgba(26, 24, 20, 0.02);
+}
+
+[data-theme="dark"] .card {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Gap mode cards */

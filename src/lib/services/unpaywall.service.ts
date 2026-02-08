@@ -4,6 +4,10 @@
  * Only requires an email in the request (no API key)
  */
 
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'unpaywall' });
+
 const UNPAYWALL_API_URL = 'https://api.unpaywall.org/v2';
 const MAILTO = 'jfinder@doedja.com';
 
@@ -73,7 +77,7 @@ export async function getUnpaywallUrl(doi: string): Promise<string | null> {
 
     return null;
   } catch (error) {
-    console.error('Unpaywall lookup error:', error);
+    log.debug('Unpaywall lookup error', { error: String(error) });
     return null;
   }
 }
@@ -82,16 +86,16 @@ export async function getUnpaywallUrl(doi: string): Promise<string | null> {
  * Download paper from Unpaywall
  */
 export async function downloadFromUnpaywall(doi: string): Promise<Buffer | null> {
-  console.log(`Checking Unpaywall for DOI: ${doi}`);
+  log.debug('Checking Unpaywall', { doi });
 
   const oaUrl = await getUnpaywallUrl(doi);
 
   if (!oaUrl) {
-    console.log('No open access URL found on Unpaywall');
+    log.debug('No OA URL found on Unpaywall', { doi });
     return null;
   }
 
-  console.log(`Found Unpaywall URL: ${oaUrl}`);
+  log.debug('Found Unpaywall URL', { doi, url: oaUrl });
 
   try {
     const controller = new AbortController();
@@ -109,7 +113,7 @@ export async function downloadFromUnpaywall(doi: string): Promise<Buffer | null>
     clearTimeout(timeout);
 
     if (!response.ok) {
-      console.log(`Failed to download from Unpaywall URL: ${response.status}`);
+      log.debug('Unpaywall download failed', { doi, status: response.status });
       return null;
     }
 
@@ -118,14 +122,14 @@ export async function downloadFromUnpaywall(doi: string): Promise<Buffer | null>
 
     // Validate it's a PDF
     if (contentType.includes('pdf') || buffer.slice(0, 4).toString() === '%PDF') {
-      console.log('Successfully downloaded from Unpaywall');
+      log.debug('Downloaded from Unpaywall', { doi });
       return buffer;
     }
 
-    console.log('Unpaywall URL did not return a PDF');
+    log.debug('Unpaywall URL not a PDF', { doi });
     return null;
   } catch (error) {
-    console.error('Unpaywall download error:', error);
+    log.debug('Unpaywall download error', { doi, error: String(error) });
     return null;
   }
 }

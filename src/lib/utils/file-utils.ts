@@ -1,6 +1,14 @@
 import { mkdir, readdir, stat, unlink, rmdir } from 'fs/promises';
-import { join } from 'path';
-import { env } from '../env';
+import { join, resolve } from 'path';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Validate that a taskId is a valid UUID format
+ */
+export function isValidTaskId(taskId: string): boolean {
+  return UUID_REGEX.test(taskId);
+}
 
 /**
  * Ensure a directory exists
@@ -30,14 +38,22 @@ export function createSafeFilename(name: string, maxLength = 100): string {
  * Get the downloads directory path
  */
 export function getDownloadsDir(): string {
-  return env.DOWNLOAD_DIR;
+  return process.env.DOWNLOAD_DIR || './downloads';
 }
 
 /**
- * Get task directory path
+ * Get task directory path (with path traversal protection)
  */
 export function getTaskDir(taskId: string): string {
-  return join(getDownloadsDir(), taskId);
+  const downloadsDir = resolve(getDownloadsDir());
+  const taskDir = resolve(join(downloadsDir, taskId));
+
+  // Ensure resolved path is within downloads directory
+  if (!taskDir.startsWith(downloadsDir)) {
+    throw new Error('Invalid task ID: path traversal detected');
+  }
+
+  return taskDir;
 }
 
 /**
@@ -114,7 +130,7 @@ export function parseDOIList(content: string): string[] {
 /**
  * Clean and validate a DOI string
  */
-function cleanDoi(doiText: string): string | null {
+export function cleanDoi(doiText: string): string | null {
   let cleaned = doiText.trim();
 
   // Remove @ prefix if present

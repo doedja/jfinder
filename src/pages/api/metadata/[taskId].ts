@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { taskManager } from '../../../lib/tasks/task-manager';
-import { getTaskDir } from '../../../lib/utils/file-utils';
+import { getTaskDir, isValidTaskId } from '../../../lib/utils/file-utils';
 
 export const GET: APIRoute = async ({ params }) => {
   const taskId = params.taskId;
@@ -10,6 +10,13 @@ export const GET: APIRoute = async ({ params }) => {
   if (!taskId) {
     return new Response(
       JSON.stringify({ error: 'Task ID required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (!isValidTaskId(taskId)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid task ID format' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }

@@ -1,5 +1,8 @@
 import * as cheerio from 'cheerio';
 import { env } from '../env';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'annas-archive' });
 
 const ANNAS_ARCHIVE_URL = 'https://annas-archive.org';
 
@@ -30,7 +33,7 @@ export async function searchByDoi(doi: string): Promise<AnnasSearchResult | null
     });
 
     if (!response.ok) {
-      console.log(`Anna's Archive search failed: ${response.status}`);
+      log.debug('Anna\'s Archive search failed', { status: response.status });
       return null;
     }
 
@@ -41,7 +44,7 @@ export async function searchByDoi(doi: string): Promise<AnnasSearchResult | null
     const results = $('a[href*="/md5/"]');
 
     if (results.length === 0) {
-      console.log('No results found on Anna\'s Archive');
+      log.debug('No results on Anna\'s Archive', { doi });
       return null;
     }
 
@@ -71,7 +74,7 @@ export async function searchByDoi(doi: string): Promise<AnnasSearchResult | null
       downloadUrl: `${ANNAS_ARCHIVE_URL}/md5/${md5}`
     };
   } catch (error) {
-    console.error('Anna\'s Archive search error:', error);
+    log.debug('Anna\'s Archive search error', { error: String(error) });
     return null;
   }
 }
@@ -123,7 +126,7 @@ async function getDownloadLinks(md5: string): Promise<string[]> {
 
     return downloadLinks;
   } catch (error) {
-    console.error('Error getting download links:', error);
+    log.debug('Error getting download links', { error: String(error) });
     return [];
   }
 }
@@ -170,7 +173,7 @@ async function tryDownload(url: string): Promise<Buffer | null> {
 
     return null;
   } catch (error) {
-    console.error('Download error:', error);
+    log.debug('Download error', { error: String(error) });
     return null;
   }
 }
@@ -179,44 +182,44 @@ async function tryDownload(url: string): Promise<Buffer | null> {
  * Download paper from Anna's Archive
  */
 export async function downloadFromAnnas(doi: string): Promise<Buffer | null> {
-  console.log(`Searching Anna's Archive for DOI: ${doi}`);
+  log.debug('Searching Anna\'s Archive', { doi });
 
   // Search for the paper
   const searchResult = await searchByDoi(doi);
 
   if (!searchResult) {
-    console.log('Paper not found on Anna\'s Archive');
+    log.debug('Paper not found on Anna\'s Archive', { doi });
     return null;
   }
 
-  console.log(`Found: ${searchResult.title}`);
+  log.debug('Found on Anna\'s Archive', { doi, title: searchResult.title });
 
   // Get download links
   const downloadLinks = await getDownloadLinks(searchResult.md5);
 
   if (downloadLinks.length === 0) {
-    console.log('No download links found');
+    log.debug('No download links found', { doi });
     return null;
   }
 
-  console.log(`Found ${downloadLinks.length} download links`);
+  log.debug('Download links found', { doi, count: downloadLinks.length });
 
   // Try each download link
   for (const link of downloadLinks) {
-    console.log(`Trying download from: ${link.substring(0, 50)}...`);
+    log.debug('Trying download', { link: link.substring(0, 50) });
     const buffer = await tryDownload(link);
 
     if (buffer) {
       // Validate it's a PDF
       const header = buffer.slice(0, 4).toString();
       if (header === '%PDF') {
-        console.log('Successfully downloaded from Anna\'s Archive');
+        log.debug('Downloaded from Anna\'s Archive', { doi });
         return buffer;
       }
     }
   }
 
-  console.log('Failed to download from Anna\'s Archive');
+  log.debug('Anna\'s Archive download failed', { doi });
   return null;
 }
 
@@ -269,7 +272,7 @@ export async function searchByTitle(title: string): Promise<AnnasSearchResult | 
       downloadUrl: `${ANNAS_ARCHIVE_URL}/md5/${md5Match[1]}`
     };
   } catch (error) {
-    console.error('Anna\'s Archive title search error:', error);
+    log.debug('Anna\'s Archive title search error', { error: String(error) });
     return null;
   }
 }

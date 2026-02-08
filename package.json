@@ -9,7 +9,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "deploy": "git add -A && git commit -m \"deploy: update\" && git push"
+    "deploy": "astro build && echo 'Build successful. Commit and push manually.'",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

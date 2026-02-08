@@ -2,7 +2,8 @@ import type { APIRoute } from 'astro';
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { taskManager } from '../../../../lib/tasks/task-manager';
-import { getTaskDir } from '../../../../lib/utils/file-utils';
+import { getTaskDir, isValidTaskId } from '../../../../lib/utils/file-utils';
+import { logger } from '../../../../lib/utils/logger';
 
 export const GET: APIRoute = async ({ params }) => {
   const { taskId, type } = params;
@@ -10,6 +11,13 @@ export const GET: APIRoute = async ({ params }) => {
   if (!taskId || !type) {
     return new Response(
       JSON.stringify({ error: 'Task ID and type required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (!isValidTaskId(taskId)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid task ID format' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -92,7 +100,7 @@ export const GET: APIRoute = async ({ params }) => {
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Download error:', error);
+    logger.error('Download error', { taskId, type, error: String(error) });
     return new Response(
       JSON.stringify({ error: 'Failed to read file' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

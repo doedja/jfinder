@@ -5,6 +5,8 @@ import { processTopicSearch, processDOISearch } from '../../lib/tasks/task-proce
 import { parseYearFilter } from '../../lib/types';
 import { parseDOIList } from '../../lib/utils/file-utils';
 import { env } from '../../lib/env';
+import { checkRateLimit, releaseTask } from '../../lib/utils/rate-limiter';
+import { logger } from '../../lib/utils/logger';
 
 const searchSchema = z.object({
   topic: z.string().optional(),
@@ -16,6 +18,19 @@ const searchSchema = z.object({
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    // Rate limiting
+    const rateLimitResponse = checkRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
+    // Concurrent task limit
+    if (taskManager.activeTaskCount >= 5) {
+      releaseTask(request);
+      return new Response(
+        JSON.stringify({ error: 'Server is busy. Please try again later.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const contentType = request.headers.get('content-type') || '';
 
     let topic: string | undefined;
@@ -104,9 +119,9 @@ export const POST: APIRoute = async ({ request }) => {
         dois: doiList,
         downloadType
       }).catch(err => {
-        console.error('DOI search error:', err);
+        logger.error('DOI search error', { taskId, error: String(err) });
         taskManager.failTask(taskId, 'Processing failed');
-      });
+      }).finally(() => releaseTask(request));
     } else if (topic) {
       processTopicSearch({
         taskId,
@@ -116,9 +131,9 @@ export const POST: APIRoute = async ({ request }) => {
         yearFilter: parseYearFilter(yearFilter),
         downloadType
       }).catch(err => {
-        console.error('Topic search error:', err);
+        logger.error('Topic search error', { taskId, error: String(err) });
         taskManager.failTask(taskId, 'Processing failed');
-      });
+      }).finally(() => releaseTask(request));
     }
 
     return new Response(
@@ -129,7 +144,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
     );
   } catch (error) {
-    console.error('Search endpoint error:', error);
+    logger.error('Search endpoint error', { error: String(error) });
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

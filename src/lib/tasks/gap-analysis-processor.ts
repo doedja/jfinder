@@ -40,6 +40,9 @@ import {
   rankDirections
 } from '../services/recommendation.service';
 import { ensureDir, getTaskDir } from '../utils/file-utils';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'gap-processor' });
 
 /**
  * Process a gap analysis request
@@ -104,7 +107,7 @@ export async function processGapAnalysis(
       return;
     }
 
-    console.log(`Found ${allPapers.length} papers for gap analysis`);
+    log.info('Papers found for gap analysis', { taskId, count: allPapers.length });
 
     // PHASE 2: Collection (30-50%)
     gapTaskManager.updateGapProgress(
@@ -155,7 +158,7 @@ export async function processGapAnalysis(
       // Deduplicate by title similarity
       gaps = deduplicateGaps(gaps);
 
-      console.log(`Identified ${gaps.length} research gaps`);
+      log.info('Gaps identified', { taskId, count: gaps.length });
     }
 
     // PHASE 4: Comparison (70-85%)
@@ -202,7 +205,7 @@ export async function processGapAnalysis(
         comparisons.push(processedComparison);
       }
 
-      console.log(`Created ${comparisons.length} comparisons`);
+      log.info('Comparisons created', { taskId, count: comparisons.length });
     }
 
     // PHASE 5: Direction Generation (85-95%)
@@ -253,7 +256,7 @@ export async function processGapAnalysis(
       directions = rankDirections(deduplicateDirections(directions));
       directions = directions.slice(0, 10); // Top 10
 
-      console.log(`Generated ${directions.length} research directions`);
+      log.info('Research directions generated', { taskId, count: directions.length });
     }
 
     // PHASE 6: Finalize (95-100%)
@@ -312,9 +315,9 @@ export async function processGapAnalysis(
       summary ? `/api/gap-report/${taskId}` : undefined
     );
 
-    console.log(`Gap analysis ${taskId} completed in ${processingTime}ms`);
+    log.info('Gap analysis completed', { taskId, processingTimeMs: processingTime, papers: allPapers.length, gaps: gaps.length });
   } catch (error) {
-    console.error('Gap analysis error:', error);
+    log.error('Gap analysis failed', { taskId, error: String(error) });
     gapTaskManager.failGapTask(taskId, `Analysis failed: ${error}`);
   }
 }
@@ -445,7 +448,7 @@ ${dir.suggestedMethodology ? `**Suggested Methodology:** ${dir.suggestedMethodol
 
     return true;
   } catch (error) {
-    console.error('Failed to generate summary report:', error);
+    log.error('Summary report generation failed', { error: String(error) });
     return false;
   }
 }

@@ -1,5 +1,10 @@
 import type { Paper, YearFilter } from '../types';
 import { env } from '../env';
+import { withRetry } from '../utils/retry';
+import { cleanDoi } from '../utils/file-utils';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'scopus' });
 
 export interface ScopusSearchParams {
   query: string;
@@ -42,34 +47,39 @@ export async function searchScopus(params: ScopusSearchParams): Promise<Paper[]>
   url.searchParams.set('count', count.toString());
 
   try {
-    const response = await fetch(url.toString(), {
-      headers: {
-        'X-ELS-APIKey': env.SCOPUS_API_KEY,
-        'Accept': 'application/json'
+    return await withRetry(async () => {
+      const response = await fetch(url.toString(), {
+        headers: {
+          'X-ELS-APIKey': env.SCOPUS_API_KEY,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status >= 500 || response.status === 429) {
+          throw new Error(`Scopus API error: ${response.status} ${response.statusText}`);
+        }
+        log.error('Scopus API error', { status: response.status, statusText: response.statusText });
+        return [];
       }
-    });
 
-    if (!response.ok) {
-      console.error(`Scopus API error: ${response.status} ${response.statusText}`);
-      return [];
-    }
+      const data = await response.json() as ScopusResponse;
+      const entries = data['search-results']?.entry || [];
 
-    const data = await response.json() as ScopusResponse;
-    const entries = data['search-results']?.entry || [];
-
-    return entries
-      .filter((entry): entry is ScopusEntry & { 'dc:title': string; 'prism:doi': string } =>
-        !!entry['dc:title'] && !!entry['prism:doi']
-      )
-      .map(entry => ({
-        title: entry['dc:title'],
-        journal: entry['prism:publicationName'] || 'Unknown Journal',
-        year: entry['prism:coverDate']?.split('-')[0] || 'Unknown Year',
-        authors: entry['dc:creator'] || 'Unknown Authors',
-        doi: entry['prism:doi']
-      }));
+      return entries
+        .filter((entry): entry is ScopusEntry & { 'dc:title': string; 'prism:doi': string } =>
+          !!entry['dc:title'] && !!entry['prism:doi']
+        )
+        .map(entry => ({
+          title: entry['dc:title'],
+          journal: entry['prism:publicationName'] || 'Unknown Journal',
+          year: entry['prism:coverDate']?.split('-')[0] || 'Unknown Year',
+          authors: entry['dc:creator'] || 'Unknown Authors',
+          doi: entry['prism:doi']
+        }));
+    }, 2, 1000);
   } catch (error) {
-    console.error('Scopus search error:', error);
+    log.error('Scopus search error', { error: String(error) });
     return [];
   }
 }
@@ -92,7 +102,7 @@ export async function lookupByDoi(doi: string): Promise<Paper | null> {
     });
 
     if (!response.ok) {
-      console.error(`Scopus DOI lookup error: ${response.status}`);
+      log.error('Scopus DOI lookup error', { status: response.status, doi });
       return null;
     }
 
@@ -118,33 +128,9 @@ export async function lookupByDoi(doi: string): Promise<Paper | null> {
       doi
     };
   } catch (error) {
-    console.error('Scopus DOI lookup error:', error);
+    log.error('Scopus DOI lookup error', { doi, error: String(error) });
     return null;
   }
-}
-
-/**
- * Clean and validate a DOI string
- */
-export function cleanDoi(doiText: string): string | null {
-  let cleaned = doiText.trim();
-
-  // Remove @ prefix if present
-  if (cleaned.startsWith('@')) {
-    cleaned = cleaned.slice(1);
-  }
-
-  // Extract DOI from URL if present
-  if (cleaned.includes('doi.org/')) {
-    cleaned = cleaned.split('doi.org/').pop() || '';
-  }
-
-  // Basic validation - DOI should start with 10.
-  if (!cleaned.startsWith('10.')) {
-    return null;
-  }
-
-  return cleaned;
 }
 
 /**

@@ -1,4 +1,8 @@
 import type { Paper } from '../types';
+import { withRetry } from '../utils/retry';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'openalex' });
 
 export interface OpenAlexSearchParams {
   query: string;
@@ -26,6 +30,26 @@ interface OpenAlexWork {
     is_oa?: boolean;
     oa_url?: string;
   };
+  abstract_inverted_index?: Record<string, number[]>;
+}
+
+/**
+ * Reconstruct abstract text from OpenAlex inverted index format
+ */
+function reconstructAbstract(invertedIndex: Record<string, number[]> | undefined): string | undefined {
+  if (!invertedIndex) return undefined;
+
+  const entries: [string, number][] = [];
+  for (const [word, positions] of Object.entries(invertedIndex)) {
+    for (const pos of positions) {
+      entries.push([word, pos]);
+    }
+  }
+
+  if (entries.length === 0) return undefined;
+
+  entries.sort((a, b) => a[1] - b[1]);
+  return entries.map(e => e[0]).join(' ');
 }
 
 interface OpenAlexResponse {
@@ -72,38 +96,44 @@ export async function searchOpenAlex(params: OpenAlexSearchParams): Promise<Pape
   url.searchParams.set('mailto', MAILTO);
 
   try {
-    const response = await fetch(url.toString(), {
-      headers: {
-        'Accept': 'application/json'
+    return await withRetry(async () => {
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status >= 500 || response.status === 429) {
+          throw new Error(`OpenAlex API error: ${response.status} ${response.statusText}`);
+        }
+        log.error('OpenAlex API error', { status: response.status, statusText: response.statusText });
+        return [];
       }
-    });
 
-    if (!response.ok) {
-      console.error(`OpenAlex API error: ${response.status} ${response.statusText}`);
-      return [];
-    }
+      const data = await response.json() as OpenAlexResponse;
+      const works = data.results || [];
 
-    const data = await response.json() as OpenAlexResponse;
-    const works = data.results || [];
-
-    return works
-      .filter((work): work is OpenAlexWork & { title: string; doi: string } =>
-        !!work.title && !!work.doi
-      )
-      .map(work => ({
-        title: work.title,
-        journal: work.primary_location?.source?.display_name || 'Unknown Journal',
-        year: work.publication_year?.toString() || 'Unknown Year',
-        authors: work.authorships
-          ?.slice(0, 3)
-          .map(a => a.author?.display_name)
-          .filter(Boolean)
-          .join(', ') || 'Unknown Authors',
-        doi: work.doi.replace('https://doi.org/', ''),
-        openAccessUrl: work.open_access?.oa_url || undefined
-      }));
+      return works
+        .filter((work): work is OpenAlexWork & { title: string; doi: string } =>
+          !!work.title && !!work.doi
+        )
+        .map(work => ({
+          title: work.title,
+          journal: work.primary_location?.source?.display_name || 'Unknown Journal',
+          year: work.publication_year?.toString() || 'Unknown Year',
+          authors: work.authorships
+            ?.slice(0, 3)
+            .map(a => a.author?.display_name)
+            .filter(Boolean)
+            .join(', ') || 'Unknown Authors',
+          doi: work.doi.replace('https://doi.org/', ''),
+          openAccessUrl: work.open_access?.oa_url || undefined,
+          abstract: reconstructAbstract(work.abstract_inverted_index)
+        }));
+    }, 2, 1000);
   } catch (error) {
-    console.error('OpenAlex search error:', error);
+    log.error('OpenAlex search error', { error: String(error) });
     return [];
   }
 }
@@ -132,7 +162,7 @@ export async function lookupByDoiOpenAlex(doi: string): Promise<Paper | null> {
           doi
         };
       }
-      console.error(`OpenAlex DOI lookup error: ${response.status}`);
+      log.error('OpenAlex DOI lookup error', { status: response.status, doi });
       return null;
     }
 
@@ -148,11 +178,115 @@ export async function lookupByDoiOpenAlex(doi: string): Promise<Paper | null> {
         .filter(Boolean)
         .join(', ') || 'Unknown Authors',
       doi,
-      openAccessUrl: work.open_access?.oa_url || undefined
+      openAccessUrl: work.open_access?.oa_url || undefined,
+      abstract: reconstructAbstract(work.abstract_inverted_index)
     };
   } catch (error) {
-    console.error('OpenAlex DOI lookup error:', error);
+    log.error('OpenAlex DOI lookup error', { doi, error: String(error) });
     return null;
+  }
+}
+
+/**
+ * Get papers that cite a given paper (forward citations)
+ */
+export async function getCitedBy(doi: string, count = 10): Promise<Paper[]> {
+  const url = new URL(OPENALEX_API_URL);
+  url.searchParams.set('filter', `cites:https://doi.org/${doi}`);
+  url.searchParams.set('per_page', count.toString());
+  url.searchParams.set('sort', 'cited_by_count:desc');
+  url.searchParams.set('mailto', MAILTO);
+
+  try {
+    const response = await fetch(url.toString(), {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json() as OpenAlexResponse;
+    const works = data.results || [];
+
+    return works
+      .filter((work): work is OpenAlexWork & { title: string; doi: string } =>
+        !!work.title && !!work.doi
+      )
+      .map(work => ({
+        title: work.title,
+        journal: work.primary_location?.source?.display_name || 'Unknown Journal',
+        year: work.publication_year?.toString() || 'Unknown Year',
+        authors: work.authorships
+          ?.slice(0, 3)
+          .map(a => a.author?.display_name)
+          .filter(Boolean)
+          .join(', ') || 'Unknown Authors',
+        doi: work.doi.replace('https://doi.org/', ''),
+        openAccessUrl: work.open_access?.oa_url || undefined,
+        abstract: reconstructAbstract(work.abstract_inverted_index)
+      }));
+  } catch (error) {
+    log.error('OpenAlex cited-by error', { doi, error: String(error) });
+    return [];
+  }
+}
+
+/**
+ * Get papers referenced by a given paper (backward citations)
+ */
+export async function getReferences(doi: string, count = 10): Promise<Paper[]> {
+  // First get the work to find its referenced_works
+  const workUrl = `https://api.openalex.org/works/doi:${encodeURIComponent(doi)}?mailto=${MAILTO}`;
+
+  try {
+    const workResponse = await fetch(workUrl, {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!workResponse.ok) return [];
+
+    const work = await workResponse.json() as any;
+    const referencedWorks: string[] = work.referenced_works || [];
+
+    if (referencedWorks.length === 0) return [];
+
+    // Fetch details for referenced works (take first N)
+    const ids = referencedWorks.slice(0, count).map((id: string) => id.replace('https://openalex.org/', ''));
+    const filter = `openalex:${ids.join('|')}`;
+
+    const url = new URL(OPENALEX_API_URL);
+    url.searchParams.set('filter', filter);
+    url.searchParams.set('per_page', count.toString());
+    url.searchParams.set('mailto', MAILTO);
+
+    const response = await fetch(url.toString(), {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json() as OpenAlexResponse;
+    const works = data.results || [];
+
+    return works
+      .filter((w): w is OpenAlexWork & { title: string; doi: string } =>
+        !!w.title && !!w.doi
+      )
+      .map(w => ({
+        title: w.title,
+        journal: w.primary_location?.source?.display_name || 'Unknown Journal',
+        year: w.publication_year?.toString() || 'Unknown Year',
+        authors: w.authorships
+          ?.slice(0, 3)
+          .map(a => a.author?.display_name)
+          .filter(Boolean)
+          .join(', ') || 'Unknown Authors',
+        doi: w.doi.replace('https://doi.org/', ''),
+        openAccessUrl: w.open_access?.oa_url || undefined,
+        abstract: reconstructAbstract(w.abstract_inverted_index)
+      }));
+  } catch (error) {
+    log.error('OpenAlex references error', { doi, error: String(error) });
+    return [];
   }
 }
 

@@ -5,6 +5,9 @@
  */
 
 import * as cheerio from 'cheerio';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'libgen' });
 
 const LIBGEN_MIRRORS = [
   'https://libgen.is',
@@ -97,7 +100,7 @@ async function searchByDoi(doi: string, mirror: string): Promise<LibGenResult | 
       mirrors: downloadLinks
     };
   } catch (error) {
-    console.error(`LibGen search error on ${mirror}:`, error);
+    log.debug('LibGen search error', { mirror, error: String(error) });
     return null;
   }
 }
@@ -153,7 +156,7 @@ async function tryDownloadFromUrl(url: string): Promise<Buffer | null> {
 
     return null;
   } catch (error) {
-    console.error('LibGen download error:', error);
+    log.debug('LibGen download error', { error: String(error) });
     return null;
   }
 }
@@ -162,11 +165,11 @@ async function tryDownloadFromUrl(url: string): Promise<Buffer | null> {
  * Download paper from LibGen
  */
 export async function downloadFromLibgen(doi: string): Promise<Buffer | null> {
-  console.log(`Searching LibGen for DOI: ${doi}`);
+  log.debug('Searching LibGen', { doi });
 
   // Try each mirror
   for (const mirror of LIBGEN_MIRRORS) {
-    console.log(`Trying LibGen mirror: ${mirror}`);
+    log.debug('Trying LibGen mirror', { mirror, doi });
 
     const result = await searchByDoi(doi, mirror);
 
@@ -174,15 +177,15 @@ export async function downloadFromLibgen(doi: string): Promise<Buffer | null> {
       continue;
     }
 
-    console.log(`Found on LibGen: ${result.title}`);
+    log.debug('Found on LibGen', { doi, title: result.title });
 
     // Try each download link
     for (const link of result.mirrors) {
-      console.log(`Trying LibGen download: ${link.substring(0, 60)}...`);
+      log.debug('Trying LibGen download', { link: link.substring(0, 60) });
       const buffer = await tryDownloadFromUrl(link);
 
       if (buffer) {
-        console.log('Successfully downloaded from LibGen');
+        log.debug('Downloaded from LibGen', { doi });
         return buffer;
       }
     }
@@ -195,16 +198,16 @@ export async function downloadFromLibgen(doi: string): Promise<Buffer | null> {
       ];
 
       for (const fallbackUrl of fallbackUrls) {
-        console.log(`Trying LibGen fallback: ${fallbackUrl.substring(0, 60)}...`);
+        log.debug('Trying LibGen fallback', { url: fallbackUrl.substring(0, 60) });
         const buffer = await tryDownloadFromUrl(fallbackUrl);
         if (buffer) {
-          console.log('Successfully downloaded from LibGen fallback');
+          log.debug('Downloaded from LibGen fallback', { doi });
           return buffer;
         }
       }
     }
   }
 
-  console.log('Failed to download from LibGen');
+  log.debug('LibGen download failed', { doi });
   return null;
 }

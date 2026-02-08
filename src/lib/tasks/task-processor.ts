@@ -7,6 +7,9 @@ import { generateSearchQueries } from '../services/openrouter.service';
 import { downloadPapers, generateMetadata } from '../services/download.service';
 import { createTaskZip } from '../utils/zip-creator';
 import { ensureDir, getTaskDir } from '../utils/file-utils';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ svc: 'task-processor' });
 
 interface ProcessTopicParams {
   taskId: string;
@@ -21,6 +24,11 @@ interface ProcessDOIParams {
   taskId: string;
   dois: string[];
   downloadType: DownloadType;
+}
+
+interface ProcessGapPapersParams {
+  taskId: string;
+  papers: Paper[];
 }
 
 /**
@@ -38,7 +46,7 @@ export async function processTopicSearch(params: ProcessTopicParams): Promise<vo
 
     // Generate search queries using LLM
     const searchQueries = await generateSearchQueries(topic, cycles);
-    console.log(`Generated ${searchQueries.length} search queries`);
+    log.info('Search queries generated', { taskId, count: searchQueries.length });
 
     // Perform research cycles
     const allPapers: Paper[] = [];
@@ -46,7 +54,7 @@ export async function processTopicSearch(params: ProcessTopicParams): Promise<vo
 
     for (let cycle = 0; cycle < searchQueries.length; cycle++) {
       if (allPapers.length >= papers) {
-        console.log('Reached target paper count, stopping search');
+        log.info('Target paper count reached', { taskId, count: allPapers.length });
         break;
       }
 
@@ -58,7 +66,7 @@ export async function processTopicSearch(params: ProcessTopicParams): Promise<vo
         allPapers.length
       );
 
-      console.log(`Cycle ${cycle + 1}: ${query}`);
+      log.debug('Search cycle', { taskId, cycle: cycle + 1, query });
 
       const results = await searchPapers({
         query,
@@ -76,12 +84,12 @@ export async function processTopicSearch(params: ProcessTopicParams): Promise<vo
         }
       }
 
-      console.log(`Found ${allPapers.length} unique papers so far`);
+      log.debug('Papers found so far', { taskId, count: allPapers.length });
 
       // Check if we need to broaden the search
       const halfwayCycle = Math.floor(cycles / 2);
       if (cycle === halfwayCycle && allPapers.length < papers * 0.8) {
-        console.log('Insufficient results, generating broader queries...');
+        log.info('Broadening search scope', { taskId, found: allPapers.length, target: papers });
         taskManager.updateTask(taskId, {
           message: 'Broadening search scope...'
         });
@@ -111,7 +119,7 @@ export async function processTopicSearch(params: ProcessTopicParams): Promise<vo
     // Process downloads or metadata only
     await processResults(taskId, taskDir, allPapers, searchQueries, downloadType);
   } catch (error) {
-    console.error('Topic search error:', error);
+    log.error('Topic search failed', { taskId, error: String(error) });
     taskManager.failTask(taskId, `Search failed: ${error}`);
   }
 }
@@ -151,8 +159,29 @@ export async function processDOISearch(params: ProcessDOIParams): Promise<void> 
     const searchQueries = [`DOI list (${dois.length} DOIs)`];
     await processResults(taskId, taskDir, allPapers, searchQueries, downloadType);
   } catch (error) {
-    console.error('DOI search error:', error);
+    log.error('DOI search failed', { taskId, error: String(error) });
     taskManager.failTask(taskId, `DOI processing failed: ${error}`);
+  }
+}
+
+/**
+ * Process papers from a gap analysis for download
+ */
+export async function processGapPapersDownload(params: ProcessGapPapersParams): Promise<void> {
+  const { taskId, papers } = params;
+
+  try {
+    const taskDir = getTaskDir(taskId);
+    await ensureDir(taskDir);
+
+    taskManager.startProcessing(taskId, 'Preparing to download papers...');
+    taskManager.updateTask(taskId, { papersFound: papers.length });
+
+    const searchQueries = [`Gap analysis papers (${papers.length} papers)`];
+    await processResults(taskId, taskDir, papers, searchQueries, 'full');
+  } catch (error) {
+    log.error('Gap papers download failed', { taskId, error: String(error) });
+    taskManager.failTask(taskId, `Download failed: ${error}`);
   }
 }
 
@@ -181,13 +210,13 @@ async function processResults(
       (current, total, paper, success) => {
         taskManager.updateDownloadProgress(taskId, current, total);
         if (!success) {
-          console.log(`Failed to download: ${paper.title}`);
+          log.warn('Download failed', { taskId, doi: paper.doi, title: paper.title.substring(0, 60) });
         }
       }
     );
 
     failedDownloads = result.failed;
-    console.log(`Downloaded ${result.successful.length} papers, ${failedDownloads.length} failed`);
+    log.info('Downloads complete', { taskId, success: result.successful.length, failed: failedDownloads.length });
   }
 
   // Generate metadata
@@ -224,5 +253,5 @@ async function processResults(
     `/api/download/${taskId}/metadata`
   );
 
-  console.log(`Task ${taskId} completed`);
+  log.info('Task completed', { taskId });
 }
