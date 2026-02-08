@@ -17,7 +17,7 @@ const umamiSrc = import.meta.env.UMAMI_SRC;
     <meta name="description" content="JFinder - A smart research paper finder and downloader. Find academic papers using AI-powered search." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
-    <script is:inline>
+    <script is:inline data-cfasync="false">
       // Prevent flash of wrong theme - must run before body renders
       (function() {
         var theme = localStorage.getItem('jfinder-theme');
