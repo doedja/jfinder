@@ -40,24 +40,6 @@ import GapResults from '../components/GapResults.astro';
         </div>
       </div>
     </header>
-    <script is:inline data-cfasync="false">
-      document.getElementById('theme-toggle').addEventListener('click', function() {
-        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        var newTheme = isDark ? 'light' : 'dark';
-        document.documentElement.classList.add('no-transition');
-        if (newTheme === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-        }
-        localStorage.setItem('jfinder-theme', newTheme);
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            document.documentElement.classList.remove('no-transition');
-          });
-        });
-      });
-    </script>
 
     <!-- Content Area -->
     <div class="content-wrapper">

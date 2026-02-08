@@ -32,6 +32,25 @@ const umamiSrc = import.meta.env.UMAMI_SRC;
         if (theme === 'dark') {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        // Theme toggle - event delegation so it works before button renders
+        document.addEventListener('click', function(e) {
+          if (e.target.closest('#theme-toggle')) {
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            var newTheme = isDark ? 'light' : 'dark';
+            document.documentElement.classList.add('no-transition');
+            if (newTheme === 'dark') {
+              document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+              document.documentElement.removeAttribute('data-theme');
+            }
+            localStorage.setItem('jfinder-theme', newTheme);
+            requestAnimationFrame(function() {
+              requestAnimationFrame(function() {
+                document.documentElement.classList.remove('no-transition');
+              });
+            });
+          }
+        });
       })();
     </script>
     {umamiWebsiteId && umamiSrc && (
