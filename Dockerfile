@@ -18,8 +18,9 @@ RUN bun run build
 FROM base AS runtime
 
 # Copy built assets
-COPY --from=build /app/dist ./dist
+COPY --from=build /app/build ./build
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./
 
 # Copy and setup entrypoint
 COPY docker-entrypoint.sh /app/

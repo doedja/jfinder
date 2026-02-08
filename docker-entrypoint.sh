@@ -6,4 +6,4 @@ mkdir -p /app/downloads
 chmod 755 /app/downloads
 
 # Start the application
-exec bun run ./dist/server/entry.mjs
+exec node build/index.js

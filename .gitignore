@@ -3,12 +3,9 @@ node_modules/
 bun.lockb
 
 # Build output
+build/
 dist/
-out/
-*.tgz
-
-# Astro
-.astro/
+.svelte-kit/
 
 # Downloads (runtime data)
 downloads/
