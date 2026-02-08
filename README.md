@@ -19,8 +19,8 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 
 ## Tech Stack
 
-- **Framework**: [Astro](https://astro.build/) with SSR
-- **Runtime**: [Bun](https://bun.sh/) / Node.js
+- **Framework**: [SvelteKit 2](https://svelte.dev/) with [Svelte 5](https://svelte.dev/docs/svelte/overview) (runes)
+- **Runtime**: Node.js
 - **Language**: TypeScript
 - **APIs**: OpenAlex (free), Scopus (optional), OpenRouter (LLM)
 
@@ -28,7 +28,7 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) v1.0+ or Node.js
+- Node.js v18+
 - [OpenRouter API Key](https://openrouter.ai/keys) (required)
 - [Scopus API Key](https://dev.elsevier.com/) (optional - falls back to OpenAlex)
 
@@ -42,7 +42,7 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 
 2. Install dependencies:
    ```bash
-   bun install
+   npm install
    ```
 
 3. Create environment file:
@@ -58,16 +58,16 @@ A smart research tool with two powerful modes: **Paper Finder** for discovering 
 
 5. Start development server:
    ```bash
-   bun run dev
+   npm run dev
    ```
 
-6. Open http://localhost:3000
+6. Open http://localhost:5173
 
 ### Production Build
 
 ```bash
-bun run build
-bun run start
+npm run build
+npm run start
 ```
 
 ## Docker Deployment
