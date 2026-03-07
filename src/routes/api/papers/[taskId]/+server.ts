@@ -2,27 +2,14 @@ import type { RequestHandler } from './$types';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
 import { taskManager } from '$lib/tasks/task-manager';
-import { getTaskDir, isValidTaskId } from '$lib/utils/file-utils';
+import { getTaskDir } from '$lib/utils/file-utils';
+import { validateAndGetTask } from '$lib/utils/task-helpers';
 
 export const GET: RequestHandler = async ({ params }) => {
-  const taskId = params.taskId;
+  const result = validateAndGetTask(params.taskId, (id) => taskManager.getTask(id), { requireComplete: true });
+  if (result instanceof Response) return result;
 
-  if (!taskId || !isValidTaskId(taskId)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid task ID' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const task = taskManager.getTask(taskId);
-  if (!task || task.status !== 'complete') {
-    return new Response(
-      JSON.stringify({ error: 'Task not found or not complete' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const papersDir = join(getTaskDir(taskId), 'papers');
+  const papersDir = join(getTaskDir(params.taskId!), 'papers');
 
   try {
     const entries = await readdir(papersDir);

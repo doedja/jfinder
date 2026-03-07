@@ -2,55 +2,24 @@ import type { RequestHandler } from './$types';
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { gapTaskManager } from '$lib/tasks/gap-task-manager';
-import { getTaskDir, isValidTaskId } from '$lib/utils/file-utils';
+import { getTaskDir } from '$lib/utils/file-utils';
+import { validateAndGetTask, jsonError } from '$lib/utils/task-helpers';
 import { logger } from '$lib/utils/logger';
 
 export const GET: RequestHandler = async ({ params, url }) => {
-  const taskId = params.taskId;
   const format = url.searchParams.get('format') || 'md';
 
-  if (!taskId) {
-    return new Response(
-      JSON.stringify({ error: 'Task ID required' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (!isValidTaskId(taskId)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid task ID format' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const task = gapTaskManager.getTask(taskId);
-
-  if (!task) {
-    return new Response(
-      JSON.stringify({ error: 'Task not found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (task.status !== 'complete') {
-    return new Response(
-      JSON.stringify({ error: 'Analysis not yet complete', status: task.status }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+  const result = validateAndGetTask(params.taskId, (id) => gapTaskManager.getTask(id), { requireComplete: true });
+  if (result instanceof Response) return result;
 
   try {
-    const taskDir = getTaskDir(taskId);
+    const taskDir = getTaskDir(params.taskId!);
     const reportPath = join(taskDir, 'gap-analysis-report.md');
 
-    // Check if report exists
     try {
       await stat(reportPath);
     } catch {
-      return new Response(
-        JSON.stringify({ error: 'Report not available' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonError('Report not available', 404);
     }
 
     const content = await readFile(reportPath, 'utf-8');
@@ -60,24 +29,17 @@ export const GET: RequestHandler = async ({ params, url }) => {
         status: 200,
         headers: {
           'Content-Type': 'text/markdown',
-          'Content-Disposition': `attachment; filename="gap-analysis-${taskId}.md"`
+          'Content-Disposition': `attachment; filename="gap-analysis-${params.taskId}.md"`
         }
       });
     }
 
-    // Return as JSON with content
-    return new Response(
-      JSON.stringify({ content }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+    return new Response(JSON.stringify({ content }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
-    logger.error('Failed to read gap report', { taskId, error: String(error) });
-    return new Response(
-      JSON.stringify({ error: 'Failed to read report' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    logger.error('Failed to read gap report', { taskId: params.taskId, error: String(error) });
+    return jsonError('Failed to read report', 500);
   }
 };

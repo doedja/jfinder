@@ -2,43 +2,30 @@ import type { RequestHandler } from './$types';
 import { readFile, stat } from 'fs/promises';
 import { join, resolve } from 'path';
 import { taskManager } from '$lib/tasks/task-manager';
-import { getTaskDir, isValidTaskId } from '$lib/utils/file-utils';
+import { getTaskDir } from '$lib/utils/file-utils';
+import { validateAndGetTask, jsonError } from '$lib/utils/task-helpers';
 
 export const GET: RequestHandler = async ({ params }) => {
   const { taskId, filename } = params;
 
-  if (!taskId || !isValidTaskId(taskId) || !filename) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid parameters' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+  if (!filename) {
+    return jsonError('Filename required', 400);
   }
 
   // Validate filename: only allow alphanumeric, underscores, hyphens, spaces, and .pdf extension
   if (!/^[\w\s\-]+\.pdf$/i.test(filename)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid filename' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Invalid filename', 400);
   }
 
-  const task = taskManager.getTask(taskId);
-  if (!task || task.status !== 'complete') {
-    return new Response(
-      JSON.stringify({ error: 'Task not found or not complete' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+  const result = validateAndGetTask(taskId, (id) => taskManager.getTask(id), { requireComplete: true });
+  if (result instanceof Response) return result;
 
-  const papersDir = join(getTaskDir(taskId), 'papers');
+  const papersDir = join(getTaskDir(taskId!), 'papers');
   const filePath = resolve(join(papersDir, filename));
 
   // Path traversal protection
   if (!filePath.startsWith(resolve(papersDir))) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid path' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Invalid path', 400);
   }
 
   try {
@@ -54,9 +41,6 @@ export const GET: RequestHandler = async ({ params }) => {
       }
     });
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'File not found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('File not found', 404);
   }
 };

@@ -146,8 +146,8 @@ function createDownloadAttempts(
 }
 
 /**
- * Race multiple download sources in parallel
- * Returns the first successful result and cancels remaining downloads
+ * Race multiple download sources in parallel.
+ * Returns the first successful result and aborts remaining downloads.
  */
 async function raceDownloads(
   attempts: DownloadAttempt[]
@@ -158,48 +158,26 @@ async function raceDownloads(
 
   const controller = new AbortController();
 
-  // Create promises that resolve with source info on success, or null on failure
-  const promises = attempts.map(async (attempt) => {
-    try {
-      if (controller.signal.aborted) return null;
-      const buffer = await attempt.download(controller.signal);
-      if (buffer && !controller.signal.aborted) {
-        return { buffer, source: attempt.source };
-      }
-      return null;
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return null;
-      log.debug('Download source error', { source: attempt.source, error: String(error) });
-      return null;
-    }
-  });
-
-  // Use Promise.race-style: resolve as soon as any source succeeds
   try {
-    const result = await new Promise<{ buffer: Buffer; source: DownloadSource } | null>((resolve) => {
-      let completedCount = 0;
-
-      promises.forEach(promise => {
-        promise.then(result => {
-          if (result && !controller.signal.aborted) {
-            controller.abort(); // Cancel remaining downloads
-            resolve(result);
-          } else {
-            completedCount++;
-            if (completedCount === promises.length) {
-              resolve(null); // All sources failed
-            }
+    const result = await Promise.any(
+      attempts.map(async (attempt) => {
+        try {
+          const buffer = await attempt.download(controller.signal);
+          if (buffer) {
+            return { buffer, source: attempt.source };
           }
-        });
-      });
-    });
-
+        } catch (error) {
+          log.debug('Download source error', { source: attempt.source, error: String(error) });
+        }
+        throw new Error(`${attempt.source} failed`);
+      })
+    );
     return result;
+  } catch {
+    // All sources failed (AggregateError)
+    return null;
   } finally {
-    // Ensure cleanup
-    if (!controller.signal.aborted) {
-      controller.abort();
-    }
+    controller.abort();
   }
 }
 

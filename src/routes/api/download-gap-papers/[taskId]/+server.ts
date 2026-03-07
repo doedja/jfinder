@@ -3,20 +3,17 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { gapTaskManager } from '$lib/tasks/gap-task-manager';
 import { taskManager } from '$lib/tasks/task-manager';
-import { getTaskDir, isValidTaskId } from '$lib/utils/file-utils';
+import { getTaskDir } from '$lib/utils/file-utils';
 import { processGapPapersDownload } from '$lib/tasks/task-processor';
 import { checkRateLimit, releaseTask } from '$lib/utils/rate-limiter';
+import { validateAndGetTask, jsonError } from '$lib/utils/task-helpers';
 import { logger } from '$lib/utils/logger';
 
 export const POST: RequestHandler = async ({ params, request }) => {
   const { taskId } = params;
 
-  if (!taskId || !isValidTaskId(taskId)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid task ID' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+  const result = validateAndGetTask(taskId, (id) => gapTaskManager.getTask(id), { requireComplete: true });
+  if (result instanceof Response) return result;
 
   // Rate limiting
   const rateLimitResponse = checkRateLimit(request);
@@ -25,41 +22,19 @@ export const POST: RequestHandler = async ({ params, request }) => {
   // Concurrent task limit
   if (taskManager.activeTaskCount >= 5) {
     releaseTask(request);
-    return new Response(
-      JSON.stringify({ error: 'Server is busy. Please try again later.' }),
-      { status: 429, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // Verify gap analysis task exists and is complete
-  const gapTask = gapTaskManager.getTask(taskId);
-  if (!gapTask) {
-    return new Response(
-      JSON.stringify({ error: 'Gap analysis task not found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (gapTask.status !== 'complete') {
-    return new Response(
-      JSON.stringify({ error: 'Gap analysis not yet complete' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Server is busy. Please try again later.', 429);
   }
 
   // Read papers from gap analysis result
   try {
-    const taskDir = getTaskDir(taskId);
+    const taskDir = getTaskDir(taskId!);
     const resultPath = join(taskDir, 'gap-analysis-result.json');
     const content = await readFile(resultPath, 'utf-8');
-    const result = JSON.parse(content);
-    const papers = result.papers || [];
+    const data = JSON.parse(content);
+    const papers = data.papers || [];
 
     if (papers.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No papers found in gap analysis results' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonError('No papers found in gap analysis results', 400);
     }
 
     // Create a new download task for these papers
@@ -80,9 +55,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
     );
   } catch (error) {
     logger.error('Failed to read gap analysis results', { taskId, error: String(error) });
-    return new Response(
-      JSON.stringify({ error: 'Failed to read gap analysis results' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Failed to read gap analysis results', 500);
   }
 };

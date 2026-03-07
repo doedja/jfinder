@@ -2,52 +2,21 @@ import type { RequestHandler } from './$types';
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { taskManager } from '$lib/tasks/task-manager';
-import { getTaskDir, isValidTaskId } from '$lib/utils/file-utils';
+import { getTaskDir } from '$lib/utils/file-utils';
+import { validateAndGetTask, jsonError } from '$lib/utils/task-helpers';
 import { logger } from '$lib/utils/logger';
 
 export const GET: RequestHandler = async ({ params }) => {
   const { taskId, type } = params;
 
-  if (!taskId || !type) {
-    return new Response(
-      JSON.stringify({ error: 'Task ID and type required' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (!isValidTaskId(taskId)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid task ID format' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // Validate type
   if (type !== 'zip' && type !== 'metadata') {
-    return new Response(
-      JSON.stringify({ error: 'Invalid type. Use "zip" or "metadata"' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Invalid type. Use "zip" or "metadata"', 400);
   }
 
-  // Check if task exists and is complete
-  const task = taskManager.getTask(taskId);
+  const result = validateAndGetTask(taskId, (id) => taskManager.getTask(id), { requireComplete: true });
+  if (result instanceof Response) return result;
 
-  if (!task) {
-    return new Response(
-      JSON.stringify({ error: 'Task not found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (task.status !== 'complete') {
-    return new Response(
-      JSON.stringify({ error: 'Task not complete' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const taskDir = getTaskDir(taskId);
+  const taskDir = getTaskDir(taskId!);
 
   try {
     if (type === 'metadata') {
@@ -56,10 +25,7 @@ export const GET: RequestHandler = async ({ params }) => {
       try {
         await stat(filePath);
       } catch {
-        return new Response(
-          JSON.stringify({ error: 'Metadata file not found' }),
-          { status: 404, headers: { 'Content-Type': 'application/json' } }
-        );
+        return jsonError('Metadata file not found', 404);
       }
 
       const content = await readFile(filePath, 'utf-8');
@@ -78,10 +44,7 @@ export const GET: RequestHandler = async ({ params }) => {
       try {
         await stat(filePath);
       } catch {
-        return new Response(
-          JSON.stringify({ error: 'ZIP file not found' }),
-          { status: 404, headers: { 'Content-Type': 'application/json' } }
-        );
+        return jsonError('ZIP file not found', 404);
       }
 
       const content = await readFile(filePath);
@@ -95,15 +58,9 @@ export const GET: RequestHandler = async ({ params }) => {
       });
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Invalid type' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Invalid type', 400);
   } catch (error) {
     logger.error('Download error', { taskId, type, error: String(error) });
-    return new Response(
-      JSON.stringify({ error: 'Failed to read file' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Failed to read file', 500);
   }
 };

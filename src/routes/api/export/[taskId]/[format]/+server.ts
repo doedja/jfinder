@@ -5,30 +5,18 @@ import { taskManager } from '$lib/tasks/task-manager';
 import { gapTaskManager } from '$lib/tasks/gap-task-manager';
 import { getTaskDir, isValidTaskId } from '$lib/utils/file-utils';
 import { papersToBibtex, papersToRis } from '$lib/utils/citation-export';
+import { jsonError } from '$lib/utils/task-helpers';
 import type { Paper } from '$lib/types';
 
 export const GET: RequestHandler = async ({ params }) => {
   const { taskId, format } = params;
 
-  if (!taskId || !format) {
-    return new Response(
-      JSON.stringify({ error: 'Task ID and format required' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (!isValidTaskId(taskId)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid task ID format' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+  if (!taskId || !format || !isValidTaskId(taskId)) {
+    return jsonError('Task ID and format required', 400);
   }
 
   if (format !== 'bibtex' && format !== 'ris') {
-    return new Response(
-      JSON.stringify({ error: 'Invalid format. Use "bibtex" or "ris"' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Invalid format. Use "bibtex" or "ris"', 400);
   }
 
   // Try to find papers from gap analysis results first, then regular task
@@ -50,22 +38,12 @@ export const GET: RequestHandler = async ({ params }) => {
   if (papers.length === 0) {
     const task = taskManager.getTask(taskId);
     if (!task) {
-      return new Response(
-        JSON.stringify({ error: 'Task not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonError('Task not found', 404);
     }
     if (task.status !== 'complete') {
-      return new Response(
-        JSON.stringify({ error: 'Task not complete' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonError('Task not complete', 400);
     }
-    // For regular tasks, we don't have papers in JSON, so parse from details.txt metadata
-    return new Response(
-      JSON.stringify({ error: 'Citation export is available for gap analysis tasks' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonError('Citation export is available for gap analysis tasks', 400);
   }
 
   if (format === 'bibtex') {
