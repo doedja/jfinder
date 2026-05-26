@@ -1,46 +1,20 @@
-# JFinder Dockerfile
-# Build stage
-FROM oven/bun:1 AS base
-WORKDIR /app
-
-# Install dependencies
-FROM base AS deps
-COPY package.json bun.lockb* ./
-RUN bun install --frozen-lockfile
-
-# Build stage
-FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-RUN bun run build
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/jfinder ./cmd/jfinder
 
-# Production stage
-FROM base AS runtime
-
-# Copy built assets
-COPY --from=build /app/build ./build
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./
-
-# Copy and setup entrypoint
-COPY docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
-
-# Create downloads directory
-RUN mkdir -p /app/downloads
-
-# Set environment variables
-ENV HOST=0.0.0.0
-ENV PORT=3000
-ENV NODE_ENV=production
-ENV DOWNLOAD_DIR=/app/downloads
-
-# Expose port
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates tzdata wget && adduser -D -u 10001 app
+WORKDIR /app
+COPY --from=build /out/jfinder /app/jfinder
+COPY templates /app/templates
+COPY static /app/static
+RUN mkdir -p /app/downloads && chown -R app:app /app
+USER app
+ENV HOST=0.0.0.0 PORT=3000 DOWNLOAD_DIR=/app/downloads
 EXPOSE 3000
-
-# Health check using bun fetch
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD bun -e "fetch('http://localhost:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
-
-# Start via entrypoint
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/healthz || exit 1
+ENTRYPOINT ["/app/jfinder"]

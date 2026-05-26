@@ -1,43 +1,13 @@
-# Dependencies
-node_modules/
-bun.lockb
-
-# Build output
-build/
-dist/
-.svelte-kit/
-
-# Downloads (runtime data)
-downloads/
-
-# Environment variables
 .env
-.env.local
-.env.*.local
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-
-# Code coverage
-coverage/
-*.lcov
-
-# Caches
-.eslintcache
-.cache/
-*.tsbuildinfo
-
-# Editor directories
+.env.*
+!.env.example
+bin/
+downloads/
+.claude/
+*.test
+*.out
+.DS_Store
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Claude Code
-.claude/

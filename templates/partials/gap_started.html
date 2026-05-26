@@ -1,0 +1,86 @@
+{{define "gap_started"}}
+<div class="run">
+  <div id="gap-progress" class="progress-card"></div>
+  <div id="gap-final"></div>
+</div>
+<script>
+(function(){
+  var src = new EventSource("/api/gap-progress/{{.TaskID}}");
+  var prog = document.getElementById("gap-progress");
+  src.onmessage = function(e){
+    try {
+      var d = JSON.parse(e.data);
+      var pct = Math.max(0, Math.min(100, d.progress|0));
+      prog.innerHTML = renderGapProgress(d, pct);
+      if (d.status === 'complete'){
+        src.close();
+        loadGapResults(d);
+      } else if (d.status === 'error'){
+        src.close();
+      }
+    } catch(err){ console.error(err); }
+  };
+  src.onerror = function(){ src.close(); };
+
+  function esc(s){ return String(s||'').replace(/[&<>]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]; }); }
+  function renderGapProgress(d, pct){
+    return ''
+      + '<div class="progress-meta">'
+      +   '<span class="badge ' + esc(d.status) + '">' + esc(d.status) + '</span>'
+      +   '<span class="muted">' + esc(d.stage || '') + '</span>'
+      + '</div>'
+      + '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><span style="width:' + pct + '%"></span></div>'
+      + '<dl class="stats">'
+      +   '<div><dt>Papers</dt><dd>' + (d.papersFound|0) + '</dd></div>'
+      +   '<div><dt>Gaps</dt><dd>' + (d.gapsIdentified|0) + '</dd></div>'
+      +   '<div><dt>Comparisons</dt><dd>' + (d.comparisonsComplete|0) + '</dd></div>'
+      +   '<div><dt>Directions</dt><dd>' + (d.directionsGenerated|0) + '</dd></div>'
+      + '</dl>';
+  }
+
+  function loadGapResults(d){
+    fetch('/api/gap-results/{{.TaskID}}').then(function(r){ return r.json(); }).then(function(res){
+      document.getElementById('gap-final').innerHTML = renderGapResult(res);
+    }).catch(function(){});
+  }
+
+  function renderGapResult(res){
+    var gaps = (res.gaps||[]).slice(0, 8).map(function(g){
+      return '<li class="card"><p class="tag pale">' + esc(g.severity) + ' / ' + esc(g.type) + '</p>'
+        + '<h3>' + esc(g.title) + '</h3><p>' + esc(g.description) + '</p>'
+        + (g.suggestedApproach ? '<p class="muted"><strong>Approach.</strong> ' + esc(g.suggestedApproach) + '</p>' : '')
+        + '</li>';
+    }).join('');
+    var dirs = (res.directions||[]).slice(0, 6).map(function(d){
+      return '<li class="card"><p class="tag pale">novelty ' + esc(d.novelty) + ' / feasibility ' + esc(d.feasibility) + '</p>'
+        + '<h3>' + esc(d.title) + '</h3><p>' + esc(d.description) + '</p>'
+        + (d.rationale ? '<p class="muted">' + esc(d.rationale) + '</p>' : '')
+        + '</li>';
+    }).join('');
+    var cmps = (res.comparisons||[]).slice(0, 5).map(function(c){
+      var findings = (c.findings||[]).map(function(f){
+        return '<p><strong>' + esc(f.aspect) + '.</strong></p>'
+          + '<p class="muted">Differences. ' + (f.differences||[]).map(esc).join('; ') + '</p>'
+          + '<p class="muted">Similarities. ' + (f.similarities||[]).map(esc).join('; ') + '</p>';
+      }).join('');
+      var contras = c.contradictions && c.contradictions.length
+        ? '<p class="muted">Contradictions. ' + c.contradictions.map(esc).join('; ') + '</p>' : '';
+      return '<li class="card"><p class="tag pale">' + esc(c.dimension) + '</p>' + findings + contras + '</li>';
+    }).join('');
+
+    return ''
+      + '<header class="result-head"><h2>Results for &ldquo;' + esc(res.topic) + '&rdquo;</h2>'
+      + '<p class="muted">' + ((res.papers||[]).length) + ' papers, ' + ((res.gaps||[]).length) + ' gaps, ' + ((res.directions||[]).length) + ' directions.</p>'
+      + '<div class="actions">'
+      +   '<a class="btn primary" href="/api/gap-report/{{.TaskID}}">Markdown report</a> '
+      +   '<a class="btn ghost" href="/api/export/{{.TaskID}}/bibtex">BibTeX</a> '
+      +   '<a class="btn ghost" href="/api/export/{{.TaskID}}/ris">RIS</a> '
+      +   '<button class="btn ghost" hx-post="/api/download-gap-papers/{{.TaskID}}" hx-target="#finder-output" hx-swap="innerHTML" onclick="switchMode(\'finder\')">Download PDFs for these papers</button>'
+      + '</div></header>'
+      + (gaps ? '<section><h3 class="section-head">Gaps</h3><ul class="cards">' + gaps + '</ul></section>' : '')
+      + (cmps ? '<section><h3 class="section-head">Comparisons</h3><ul class="cards">' + cmps + '</ul></section>' : '')
+      + (dirs ? '<section><h3 class="section-head">Directions</h3><ul class="cards">' + dirs + '</ul></section>' : '');
+  }
+})();
+</script>
+{{end}}

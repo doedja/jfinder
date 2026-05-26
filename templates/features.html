@@ -1,0 +1,75 @@
+{{define "content"}}
+<section class="hero compact">
+  <div class="wrap">
+    <p class="eyebrow">Features</p>
+    <h1 class="display">What JFinder actually does.</h1>
+    <p class="lede">Every capability is shipped today. The list will stay short on purpose.</p>
+    <p><a href="/" class="back">Back to search</a></p>
+  </div>
+</section>
+
+<section class="features">
+  <div class="wrap">
+    <article class="feature">
+      <h2>Search providers</h2>
+      <ul class="plain">
+        <li><strong>OpenAlex</strong> by default. Free, no API key, polite-pool email built in.</li>
+        <li><strong>Scopus</strong> when <code>SCOPUS_API_KEY</code> is set. Same shape, higher recall on commercial sources.</li>
+        <li><strong>Topic mode</strong> generates Scopus-style queries through the configured LLM.</li>
+        <li><strong>DOI mode</strong> accepts a <code>.txt</code> file with one DOI per line.</li>
+      </ul>
+    </article>
+
+    <article class="feature">
+      <h2>Download race</h2>
+      <ul class="plain">
+        <li>OpenAlex OA URL fetched first when the metadata reports an OA link.</li>
+        <li>Unpaywall, Sci-Hub, LibGen run in parallel as fallbacks.</li>
+        <li>Anna's Archive joins the race when <code>ANNAS_API_KEY</code> or <code>RAPIDAPI_KEY</code> is set.</li>
+        <li>First valid PDF wins. Losing fetches are cancelled to save bandwidth.</li>
+        <li>Optional WebShare proxy pool through <code>PROXY_URL</code>.</li>
+      </ul>
+    </article>
+
+    <article class="feature">
+      <h2>Gap analysis</h2>
+      <ul class="plain">
+        <li>Temporal gaps (missing years, declining activity), keyword gaps, methodology clusters, contradictions.</li>
+        <li>LLM-driven gap detection, methodology comparison, direction suggestions.</li>
+        <li>Algorithmic + LLM results are deduplicated and ranked.</li>
+        <li>Outputs a JSON result and a Markdown report ready to share.</li>
+      </ul>
+    </article>
+
+    <article class="feature">
+      <h2>LLM providers</h2>
+      <ul class="plain">
+        <li><strong>DeepSeek</strong> via <code>https://api.deepseek.com/v1</code>. Default model <code>deepseek-chat</code>.</li>
+        <li><strong>OpenRouter</strong> via <code>https://openrouter.ai/api/v1</code>. Default model <code>qwen/qwen-2.5-72b-instruct</code>.</li>
+        <li>Switch with <code>LLM_PROVIDER</code>. Set <code>LLM_API_KEY</code> and optionally <code>LLM_MODEL</code>.</li>
+        <li>Prompts are designed for high KV cache hit rate: identical system message and instruction header per task, variable data appended at the tail.</li>
+      </ul>
+    </article>
+
+    <article class="feature">
+      <h2>Exports</h2>
+      <ul class="plain">
+        <li>Per-task ZIP with PDFs + <code>details.txt</code> metadata.</li>
+        <li>Markdown report for gap analyses.</li>
+        <li>BibTeX and RIS citation export.</li>
+        <li>Inline PDF preview through <code>/api/preview</code>.</li>
+      </ul>
+    </article>
+
+    <article class="feature">
+      <h2>Operations</h2>
+      <ul class="plain">
+        <li>Per-IP rate limit (10 req/min, 3 concurrent tasks).</li>
+        <li>In-memory task lifecycle with TTL cleanup (default 1 hour).</li>
+        <li>JSON-line logs to stdout, errors to stderr.</li>
+        <li>Server-sent events for progress streaming.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+{{end}}

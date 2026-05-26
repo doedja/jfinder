@@ -1,39 +1,31 @@
-# Dependencies
-node_modules
-.pnp
-.pnp.js
-
-# Build output
-build
-.svelte-kit
-
 # Environment files (use Docker env vars instead)
 .env
 .env.*
 !.env.example
 
-# IDE and OS
-.idea
-.vscode
+# Local build artifacts
+bin/
+*.test
+*.out
+
+# Local data
+downloads/
+
+# IDE / OS
+.idea/
+.vscode/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
 
 # Git
-.git
+.git/
 .gitignore
 
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Downloads (don't include local downloads in image)
-downloads
-
-# Misc
+# Project meta
 *.md
 !README.md
 .editorconfig
+.claude/
+CLAUDE.md

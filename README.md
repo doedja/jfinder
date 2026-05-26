@@ -1,155 +1,125 @@
 # JFinder
 
-A smart research tool with two powerful modes: **Paper Finder** for discovering and downloading research papers, and **Gap Analysis** for identifying unexplored research opportunities.
+Research paper finder and gap analysis tool. Search OpenAlex or Scopus, download legally available PDFs from racing sources, and let an LLM map gaps and directions in the literature.
 
-## Features
+Live: https://jfinder.doedja.com
 
-### Paper Finder Mode
-- **Smart Search** - AI-powered query generation using LLM to find relevant papers
-- **Multi-Source Downloads** - Parallel downloads from OpenAlex, Unpaywall, Sci-Hub, and LibGen
-- **Bulk Processing** - Upload DOI lists to process multiple papers at once
-- **Auto-Broadening** - Automatically expands search when results are limited
-- **Rich Metadata** - Captures authors, journals, years, and DOIs
+## What it does
 
-### Gap Analysis Mode
-- **Research Gap Detection** - AI identifies unexplored areas in your field
-- **Literature Comparison** - Analyzes existing research to find opportunities
-- **Smart Recommendations** - Suggests potential research directions
-- **Exportable Reports** - Download comprehensive gap analysis reports
+Two modes on one page.
 
-## Tech Stack
+**Paper Finder.** Generates Scopus-style queries from a topic via LLM, searches OpenAlex (or Scopus when a key is set), deduplicates by DOI, then for every paper races OpenAlex OA, Unpaywall, Sci-Hub, LibGen, and (optionally) Anna's Archive in parallel. First valid PDF wins. Bundles results into a ZIP.
 
-- **Framework**: [SvelteKit 2](https://svelte.dev/) with [Svelte 5](https://svelte.dev/docs/svelte/overview) (runes)
-- **Runtime**: Node.js
-- **Language**: TypeScript
-- **APIs**: OpenAlex (free), Scopus (optional), OpenRouter (LLM)
+**Gap Analysis.** Collects N papers on a topic and runs algorithmic + LLM analysis to produce research gaps, methodology comparisons, contradictions, clusters, trends, and recommended research directions. Outputs a JSON result + Markdown report. Optional one-click download of the analyzed PDFs.
 
-## Getting Started
+## Stack
 
-### Prerequisites
+- Go 1.26 single binary (~14 MB)
+- chi router, html/template, htmx + SSE for the UI
+- In-memory task lifecycle with TTL cleanup (no database)
+- Stdlib HTTP + goquery for HTML parsing
+- LLM client switchable between DeepSeek (default) and OpenRouter
 
-- [Bun](https://bun.sh/) v1.0+ or Node.js v18+
-- [OpenRouter API Key](https://openrouter.ai/keys) (required)
-- [Scopus API Key](https://dev.elsevier.com/) (optional - falls back to OpenAlex)
+The DeepSeek client is designed for high KV cache hit rate: each task type has a stable system message and a stable instruction header; only the variable payload (topic, papers, gap titles) is appended at the tail. Cache stats are logged via the `prompt_cache_hit_tokens` field.
 
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/doedja/jfinder.git
-   cd jfinder
-   ```
-
-2. Install dependencies:
-   ```bash
-   bun install
-   ```
-
-3. Create environment file:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Edit `.env` and add your API keys:
-   ```env
-   OPENROUTER_API_KEY=sk-or-v1-your_key
-   # Optional: SCOPUS_API_KEY=your_scopus_key
-   ```
-
-5. Start development server:
-   ```bash
-   bun run dev
-   ```
-
-6. Open http://localhost:5173
-
-### Production Build
+## Run locally
 
 ```bash
-bun run build
-bun run start
-```
-
-## Docker Deployment
-
-### Using Docker Compose
-
-```bash
-# Create .env file with your API keys
 cp .env.example .env
+# fill LLM_API_KEY (DeepSeek by default)
 
-# Build and run
-docker-compose up -d
+go build -o bin/jfinder ./cmd/jfinder
+./bin/jfinder
 ```
 
-### Using Docker directly
+Open http://localhost:3000.
+
+## Tests
 
 ```bash
-docker build -t jfinder .
-docker run -d -p 3000:3000 \
-  -e OPENROUTER_API_KEY=your_key \
-  jfinder
+go test ./...
 ```
 
-## Coolify Deployment
+17 integration tests cover page rendering, validation, SSE, exports, and the suggest endpoint.
 
-1. Connect your GitHub repository to Coolify
-2. Select "Docker" as build method
-3. Add environment variables in Coolify UI:
-   - `OPENROUTER_API_KEY` (required)
-   - `SCOPUS_API_KEY` (optional)
-   - Other optional variables from `.env.example`
-4. Configure persistent storage for `/app/downloads`
-5. Deploy
+## Deploy (Coolify / Docker)
 
-## API Endpoints
+```bash
+docker compose up -d --build
+```
 
-### Paper Finder
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/search` | POST | Start a search task |
-| `/api/progress/[taskId]` | GET | SSE stream for progress |
-| `/api/download/[taskId]/[type]` | GET | Download results (zip/metadata) |
-| `/api/metadata/[taskId]` | GET | Get search metadata |
+Or via Coolify: point at this repo, the included `Dockerfile` builds a multi-stage image (golang:1.26-alpine builder, alpine runtime, non-root user, healthcheck on `/healthz`). Set the env vars in the Coolify UI.
 
-### Gap Analysis
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/analyze-gaps` | POST | Start gap analysis |
-| `/api/gap-progress/[taskId]` | GET | SSE stream for gap analysis |
-| `/api/gap-results/[taskId]` | GET | Get gap analysis results |
-| `/api/gap-report/[taskId]` | GET | Download gap analysis report |
+## Environment
 
-## Configuration
+Required:
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `OPENROUTER_API_KEY` | Yes | - | OpenRouter API key for LLM |
-| `OPENROUTER_MODEL` | No | `qwen/qwen-2.5-72b-instruct` | LLM model to use |
-| `SCOPUS_API_KEY` | No | - | Elsevier Scopus API key (falls back to OpenAlex) |
-| `ANNAS_API_KEY` | No | - | Anna's Archive API key (adds extra download source) |
-| `RAPIDAPI_KEY` | No | - | RapidAPI key for Anna's Archive |
-| `PROXY_URL` | No | - | WebShare.io proxy list URL |
-| `DOWNLOAD_DIR` | No | `./downloads` | Directory for downloads |
-| `TASK_TTL_MS` | No | `3600000` | Task cleanup time (1 hour) |
-| `MAX_UPLOAD_SIZE` | No | `16777216` | Max upload size (16MB) |
-| `UMAMI_WEBSITE_ID` | No | - | Umami analytics website ID |
-| `UMAMI_SRC` | No | - | Umami analytics script URL |
+| Var | Notes |
+|---|---|
+| `LLM_API_KEY` | DeepSeek or OpenRouter key |
 
-## Download Sources
+Optional with defaults:
 
-Papers are downloaded from multiple sources in parallel for speed and reliability:
+| Var | Default | Notes |
+|---|---|---|
+| `LLM_PROVIDER` | `deepseek` | `deepseek` or `openrouter` |
+| `LLM_MODEL` | provider default | `deepseek-chat` or `qwen/qwen-2.5-72b-instruct` |
+| `SCOPUS_API_KEY` | (empty, uses OpenAlex) | falls back to OpenAlex when unset |
+| `PROXY_URL` | (empty) | WebShare-format proxy list URL |
+| `ANNAS_API_KEY` / `RAPIDAPI_KEY` | (empty) | either enables Anna's Archive |
+| `DOWNLOAD_DIR` | `./downloads` | task output root |
+| `TASK_TTL_MS` | 3600000 | task TTL (ms) before cleanup |
+| `MAX_UPLOAD_SIZE` | 16777216 | DOI list upload cap (bytes) |
+| `BASE_URL` | `https://jfinder.doedja.com` | canonical + sitemap |
+| `HOST` / `PORT` | `0.0.0.0` / `3000` | bind |
+| `UMAMI_WEBSITE_ID` / `UMAMI_SRC` | (empty) | analytics |
+| `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 
-- **OpenAlex** - Open Access URLs (free, no key)
-- **Unpaywall** - Legal OA links (free, no key)
-- **Sci-Hub** - Research papers (free, no key)
-- **LibGen** - Library Genesis (free, no key)
-- **Anna's Archive** - Optional, requires API key
+## API
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/search` | topic or DOI file. Returns `{taskId}`. |
+| POST | `/api/analyze-gaps` | starts a gap analysis. Returns `{taskId}`. |
+| POST | `/api/download-gap-papers/{taskId}` | spawns a download task for a completed gap analysis. |
+| GET | `/api/progress/{taskId}` | SSE stream for download tasks. |
+| GET | `/api/gap-progress/{taskId}` | SSE stream for gap analysis tasks. |
+| GET | `/api/papers/{taskId}` | list downloaded papers. |
+| GET | `/api/metadata/{taskId}` | `details.txt` for a task. |
+| GET | `/api/download/{taskId}/{zip,metadata}` | task ZIP or metadata file. |
+| GET | `/api/preview/{taskId}/{filename}` | inline PDF preview. |
+| GET | `/api/export/{taskId}/{bibtex,ris}` | citation export (gap tasks). |
+| GET | `/api/gap-results/{taskId}` | raw JSON result. |
+| GET | `/api/gap-report/{taskId}?format=md\|json` | Markdown report. |
+| GET | `/api/suggest?q=` | OpenAlex topic autocomplete. |
+| GET | `/api/related-papers/{doi}` | citations and references. |
+| GET | `/healthz` | liveness. |
+
+Per-IP rate limiting (10 req/min, 3 concurrent tasks). Tasks are in-memory with TTL cleanup.
+
+## Project layout
+
+```
+cmd/jfinder/main.go        binary entrypoint
+internal/
+  config/                  env loading
+  types/                   shared domain types
+  util/                    logger, retry, files, citations, zip, rate limiter
+  proxy/                   WebShare proxy pool
+  search/                  OpenAlex + Scopus
+  download/                Sci-Hub, LibGen, Unpaywall, Anna's, OA, race engine
+  gap/                     algorithmic gap analysis
+  llm/                     KV-cache friendly LLM client (DeepSeek / OpenRouter)
+  tasks/                   in-memory managers + processors
+  web/                     chi router, handlers, SSE, html/template renderer
+templates/                 base layout + index + features + partials
+static/                    css, htmx, og image, manifest, favicon
+```
+
+## Acknowledgements
+
+OpenAlex polite-pool friendly. Unpaywall email identification included. Default user-agent identifies as a browser to satisfy mirror access requirements.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Disclaimer
-
-This tool is intended for legitimate academic research purposes. Users are responsible for complying with the terms of service of any sources used and applicable copyright laws in their jurisdiction.
+MIT. See `LICENSE`.

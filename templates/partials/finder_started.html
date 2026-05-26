@@ -1,0 +1,49 @@
+{{define "finder_started"}}
+<div class="run" hx-ext="sse" sse-connect="/api/progress/{{.TaskID}}" sse-swap="message" hx-target="#finder-progress" hx-swap="innerHTML">
+  <div id="finder-progress" class="progress-card"></div>
+  <div id="finder-final" hx-trigger="sse:complete from:closest .run" hx-get="/api/finder-result/{{.TaskID}}" hx-target="#finder-output" hx-swap="innerHTML"></div>
+</div>
+<script>
+(function(){
+  var src = new EventSource("/api/progress/{{.TaskID}}");
+  var prog = document.getElementById("finder-progress");
+  src.onmessage = function(e){
+    try {
+      var d = JSON.parse(e.data);
+      var pct = Math.max(0, Math.min(100, d.progress|0));
+      var done = d.status === 'complete' || d.status === 'error';
+      prog.innerHTML = renderFinderProgress(d, pct);
+      if (done){
+        src.close();
+        if (d.status === 'complete'){
+          renderFinderDone(d);
+        }
+      }
+    } catch(err){ console.error(err); }
+  };
+  src.onerror = function(){ src.close(); };
+
+  function esc(s){ return String(s||'').replace(/[&<>]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]; }); }
+  function renderFinderProgress(d, pct){
+    return ''
+      + '<div class="progress-meta">'
+      +   '<span class="badge ' + esc(d.status) + '">' + esc(d.status) + '</span>'
+      +   '<span class="muted">' + esc(d.message || '') + '</span>'
+      + '</div>'
+      + '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><span style="width:' + pct + '%"></span></div>'
+      + '<dl class="stats">'
+      +   '<div><dt>Found</dt><dd>' + (d.papersFound|0) + ' / ' + (d.totalPapers|0) + '</dd></div>'
+      +   '<div><dt>Downloaded</dt><dd>' + (d.papersDownloaded|0) + '</dd></div>'
+      +   '<div><dt>Cycle</dt><dd>' + (d.currentCycle|0) + ' / ' + (d.totalCycles|0) + '</dd></div>'
+      + '</dl>';
+  }
+  function renderFinderDone(d){
+    var rows = '';
+    if (d.downloadUrl) rows += '<a class="btn primary" href="' + esc(d.downloadUrl) + '">Download ZIP</a> ';
+    if (d.metadataUrl) rows += '<a class="btn ghost" href="' + esc(d.metadataUrl) + '">Metadata (.txt)</a>';
+    document.getElementById('finder-output').insertAdjacentHTML('beforeend',
+      '<div class="done"><p class="muted">Task complete.</p><div class="actions">' + rows + '</div></div>');
+  }
+})();
+</script>
+{{end}}

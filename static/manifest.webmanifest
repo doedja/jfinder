@@ -1,0 +1,12 @@
+{
+  "name": "JFinder",
+  "short_name": "JFinder",
+  "description": "Research paper finder and gap analysis tool.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#111111",
+  "icons": [
+    { "src": "/static/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

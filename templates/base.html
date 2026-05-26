@@ -1,0 +1,106 @@
+{{define "base"}}<!doctype html>
+<html lang="en" data-theme="{{.Theme}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+
+<title>{{.Title}}</title>
+<meta name="description" content="{{.Description}}">
+<link rel="canonical" href="{{.Canonical}}">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="JFinder">
+<meta property="og:title" content="{{.Title}}">
+<meta property="og:description" content="{{.Description}}">
+<meta property="og:url" content="{{.Canonical}}">
+<meta property="og:image" content="{{.BaseURL}}/static/img/og.svg">
+<meta property="og:image:type" content="image/svg+xml">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{.Title}}">
+<meta name="twitter:description" content="{{.Description}}">
+<meta name="twitter:image" content="{{.BaseURL}}/static/img/og.svg">
+
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
+
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="alternate icon" type="image/png" href="/static/favicon.png">
+<link rel="apple-touch-icon" href="/static/favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+<link rel="preconnect" href="https://api.openalex.org" crossorigin>
+<link rel="preconnect" href="https://api.unpaywall.org" crossorigin>
+
+<link rel="stylesheet" href="/static/css/main.css">
+
+{{if .JSONLD}}
+<script type="application/ld+json">{{.JSONLD}}</script>
+{{end}}
+
+<script defer src="/static/js/htmx.min.js"></script>
+<script defer src="/static/js/htmx-sse.js"></script>
+{{if .UmamiSrc}}
+<script defer src="{{.UmamiSrc}}" data-website-id="{{.UmamiID}}"></script>
+{{end}}
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header" role="banner">
+  <div class="wrap row">
+    <a class="brand" href="/" aria-label="JFinder home">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="brand-name">JFinder</span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="/features">Features</a>
+      <a href="https://github.com/doedja/jfinder" rel="noopener" target="_blank">GitHub</a>
+    </nav>
+    <button class="theme" type="button" aria-label="Toggle theme" onclick="toggleTheme()">
+      <span class="theme-on-light" aria-hidden="true">Dark</span>
+      <span class="theme-on-dark" aria-hidden="true">Light</span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+{{template "content" .}}
+</main>
+
+<footer class="site-footer" role="contentinfo">
+  <div class="wrap row">
+    <p><strong>JFinder</strong>. Research paper finder &amp; gap analysis.</p>
+    <p class="muted">
+      <a href="/features">Features</a>
+      <span aria-hidden="true">/</span>
+      <a href="https://github.com/doedja/jfinder" rel="noopener" target="_blank">Source</a>
+      <span aria-hidden="true">/</span>
+      <a href="/sitemap.xml">Sitemap</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+function toggleTheme(){
+  var root = document.documentElement;
+  var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  root.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch(e){}
+}
+(function(){
+  try {
+    var stored = localStorage.getItem('theme');
+    if (stored) document.documentElement.dataset.theme = stored;
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
+{{end}}
