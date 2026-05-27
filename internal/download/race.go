@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/doedja/jfinder/internal/config"
@@ -101,7 +102,7 @@ func (e *Engine) Download(ctx context.Context, paper types.Paper) (data []byte, 
 	case r := <-results:
 		cancel()
 		return r.data, r.src, true
-	case <-time.After(120 * time.Second):
+	case <-time.After(60 * time.Second):
 		return nil, "", false
 	}
 }
@@ -125,47 +126,88 @@ func (e *Engine) DownloadBatch(ctx context.Context, papers []types.Paper, taskDi
 	papersDir := filepath.Join(taskDir, "papers")
 	os.MkdirAll(papersDir, 0755)
 
+	total := len(papers)
+	workers := 3
+	if total < workers {
+		workers = total
+	}
+
+	type job struct {
+		idx   int
+		paper types.Paper
+	}
+
+	jobs := make(chan job)
+	var mu sync.Mutex
 	var successful []string
 	var failed []types.FailedDownload
+	processed := 0
+
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range jobs {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				if e.onStart != nil {
+					e.onStart(j.idx+1, total, j.paper)
+				}
+
+				if j.paper.DOI == "" {
+					mu.Lock()
+					failed = append(failed, types.FailedDownload{
+						Paper:            j.paper,
+						Error:            "no DOI",
+						AttemptedSources: nil,
+					})
+					processed++
+					done := processed
+					mu.Unlock()
+					if onProgress != nil {
+						onProgress(done, total, j.paper, false)
+					}
+					continue
+				}
+
+				result := e.DownloadAndSave(ctx, j.paper, papersDir)
+				mu.Lock()
+				if result.Success {
+					successful = append(successful, result.FilePath)
+				} else {
+					failed = append(failed, types.FailedDownload{
+						Paper:            j.paper,
+						Error:            result.Error,
+						AttemptedSources: nil,
+					})
+				}
+				processed++
+				done := processed
+				mu.Unlock()
+				if onProgress != nil {
+					onProgress(done, total, j.paper, result.Success)
+				}
+			}
+		}()
+	}
 
 	for i, paper := range papers {
 		select {
 		case <-ctx.Done():
+			close(jobs)
+			wg.Wait()
 			return successful, failed
-		default:
+		case jobs <- job{idx: i, paper: paper}:
 		}
-
-		if e.onStart != nil {
-			e.onStart(i+1, len(papers), paper)
-		}
-
-		if paper.DOI == "" {
-			failed = append(failed, types.FailedDownload{
-				Paper:            paper,
-				Error:            "no DOI",
-				AttemptedSources: nil,
-			})
-			if onProgress != nil {
-				onProgress(i+1, len(papers), paper, false)
-			}
-			continue
-		}
-
-		result := e.DownloadAndSave(ctx, paper, papersDir)
-		if result.Success {
-			successful = append(successful, result.FilePath)
-		} else {
-			failed = append(failed, types.FailedDownload{
-				Paper:            paper,
-				Error:            result.Error,
-				AttemptedSources: nil,
-			})
-		}
-		if onProgress != nil {
-			onProgress(i+1, len(papers), paper, result.Success)
-		}
-		time.Sleep(2 * time.Second)
 	}
+	close(jobs)
+	wg.Wait()
+
 	return successful, failed
 }
 
