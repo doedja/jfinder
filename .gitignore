@@ -4,6 +4,8 @@
 bin/
 downloads/
 .claude/
+CLAUDE.md
+.handoff/
 *.test
 *.out
 .DS_Store
