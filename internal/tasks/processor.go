@@ -230,6 +230,10 @@ func (p *Processor) processResults(ctx context.Context, taskID, taskDir string, 
 			t.Progress = 50
 		})
 
+		p.engine.SetOnStart(func(current, total int, paper types.Paper) {
+			p.manager.StartPaperDownload(taskID, current, total, paper.Title)
+		})
+
 		_, failed := p.engine.DownloadBatch(ctx, papers, taskDir, func(current, total int, paper types.Paper, success bool) {
 			p.manager.UpdateDownloadProgress(taskID, current, total)
 			if !success {

@@ -72,6 +72,7 @@ func main() {
 		http.ServeFile(w, r, "static/favicon.svg")
 	})
 	r.Get("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/manifest+json")
 		http.ServeFile(w, r, "static/manifest.webmanifest")
 	})
 

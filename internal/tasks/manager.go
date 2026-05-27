@@ -149,19 +149,70 @@ func (m *DownloadManager) UpdateCycleProgress(id, message string, cycle, found i
 	})
 }
 
-// UpdateDownloadProgress updates progress during download phase (90-100).
+// UpdateDownloadProgress updates progress during download phase (50-99).
+// Uses the wider 50-99 range so the bar visibly moves between papers.
 func (m *DownloadManager) UpdateDownloadProgress(id string, downloaded, total int) {
-	progress := int(90 + float64(downloaded)/float64(total)*10)
-	if progress < 90 {
-		progress = 90
-	} else if progress > 100 {
+	progress := 50
+	if total > 0 {
+		progress = 50 + int(float64(downloaded)/float64(total)*49)
+	}
+	if progress < 50 {
+		progress = 50
+	} else if progress > 99 {
 		progress = 99
 	}
 	m.Update(id, func(t *types.TaskStatus) {
 		t.PapersDownloaded = downloaded
 		t.Progress = progress
-		t.Message = "Downloading papers..."
 	})
+}
+
+// StartPaperDownload marks the start of a single paper's race attempt with a
+// human-readable message ("Paper 2/3: <truncated title>"). Called before the
+// download actually starts so the UI does not look frozen while one paper
+// goes through several source attempts.
+func (m *DownloadManager) StartPaperDownload(id string, current, total int, title string) {
+	const maxTitle = 70
+	t := title
+	if len(t) > maxTitle {
+		t = t[:maxTitle] + "..."
+	}
+	progress := 50
+	if total > 0 {
+		// position the bar at the start of the current paper's slice
+		progress = 50 + int(float64(current-1)/float64(total)*49)
+	}
+	if progress < 50 {
+		progress = 50
+	} else if progress > 99 {
+		progress = 99
+	}
+	m.Update(id, func(s *types.TaskStatus) {
+		s.Progress = progress
+		s.Message = "Paper " + itoa(current) + "/" + itoa(total) + ": " + t
+	})
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	neg := n < 0
+	if neg {
+		n = -n
+	}
+	var buf [20]byte
+	i := len(buf)
+	for n > 0 {
+		i--
+		buf[i] = byte('0' + n%10)
+		n /= 10
+	}
+	if neg {
+		i--
+		buf[i] = '-'
+	}
+	return string(buf[i:])
 }
 
 // Complete sets task as complete with download/metadata URLs.

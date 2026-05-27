@@ -36,6 +36,7 @@ type Engine struct {
 	unpaywall       *UnpaywallService
 	openalexFetcher *OpenAlexOAFetcher
 	logger          *util.Logger
+	onStart         func(current, total int, paper types.Paper)
 }
 
 func NewEngine(cfg *config.Config, p *proxy.Service) *Engine {
@@ -134,6 +135,10 @@ func (e *Engine) DownloadBatch(ctx context.Context, papers []types.Paper, taskDi
 		default:
 		}
 
+		if e.onStart != nil {
+			e.onStart(i+1, len(papers), paper)
+		}
+
 		if paper.DOI == "" {
 			failed = append(failed, types.FailedDownload{
 				Paper:            paper,
@@ -162,4 +167,10 @@ func (e *Engine) DownloadBatch(ctx context.Context, papers []types.Paper, taskDi
 		time.Sleep(2 * time.Second)
 	}
 	return successful, failed
+}
+
+// SetOnStart registers a callback fired BEFORE each paper's race starts.
+// Lets the caller update UI before the (potentially slow) download attempt.
+func (e *Engine) SetOnStart(fn func(current, total int, paper types.Paper)) {
+	e.onStart = fn
 }
