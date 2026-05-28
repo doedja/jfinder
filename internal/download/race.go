@@ -37,7 +37,6 @@ type Engine struct {
 	unpaywall       *UnpaywallService
 	openalexFetcher *OpenAlexOAFetcher
 	logger          *util.Logger
-	onStart         func(current, total int, paper types.Paper)
 }
 
 func NewEngine(cfg *config.Config, p *proxy.Service) *Engine {
@@ -120,7 +119,11 @@ func (e *Engine) DownloadAndSave(ctx context.Context, paper types.Paper, outputD
 	return types.DownloadResult{Success: true, Source: src, FilePath: filePath}
 }
 
+// DownloadBatch downloads papers concurrently. onStart fires before each
+// paper's race begins; onProgress fires after each paper resolves. Both
+// callbacks are per-call so concurrent batches never share callback state.
 func (e *Engine) DownloadBatch(ctx context.Context, papers []types.Paper, taskDir string,
+	onStart func(current, total int, paper types.Paper),
 	onProgress func(current, total int, p types.Paper, success bool)) ([]string, []types.FailedDownload) {
 
 	papersDir := filepath.Join(taskDir, "papers")
@@ -155,8 +158,8 @@ func (e *Engine) DownloadBatch(ctx context.Context, papers []types.Paper, taskDi
 				default:
 				}
 
-				if e.onStart != nil {
-					e.onStart(j.idx+1, total, j.paper)
+				if onStart != nil {
+					onStart(j.idx+1, total, j.paper)
 				}
 
 				if j.paper.DOI == "" {
@@ -209,10 +212,4 @@ func (e *Engine) DownloadBatch(ctx context.Context, papers []types.Paper, taskDi
 	wg.Wait()
 
 	return successful, failed
-}
-
-// SetOnStart registers a callback fired BEFORE each paper's race starts.
-// Lets the caller update UI before the (potentially slow) download attempt.
-func (e *Engine) SetOnStart(fn func(current, total int, paper types.Paper)) {
-	e.onStart = fn
 }
