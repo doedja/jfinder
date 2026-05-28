@@ -120,15 +120,19 @@
       + (dirs ? '<section><h3 class="section-head">Directions</h3><ul class="cards">' + dirs + '</ul></section>' : '');
   }
 
+  var done = false;
   src.onmessage = function(e){
     try {
       var d = JSON.parse(e.data);
+      if (d.error && !d.status) { done = true; src.close(); renderError(d); return; }
       prog.innerHTML = renderProgress(d);
-      if (d.status === 'complete') { src.close(); loadResults(); }
-      else if (d.status === 'error') { src.close(); renderError(d); }
+      if (d.status === 'complete') { done = true; src.close(); loadResults(); }
+      else if (d.status === 'error') { done = true; src.close(); renderError(d); }
     } catch(err) { console.error('gap progress parse error', err); }
   };
-  src.onerror = function(){ src.close(); };
+  // Only stop on a terminal state. A transient drop (proxy/network blip) should
+  // let EventSource auto-reconnect and resume polling, not freeze the UI.
+  src.onerror = function(){ if (done) src.close(); };
 })();
 
 window.downloadGapPdfs = function(taskId){

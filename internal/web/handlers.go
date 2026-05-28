@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/doedja/jfinder/internal/config"
 	"github.com/doedja/jfinder/internal/download"
@@ -43,29 +44,50 @@ type Deps struct {
 	Renderer     *Renderer
 }
 
+// requestTimeout caps how long a normal (non-streaming) handler may run before
+// its context is cancelled. SSE progress streams are deliberately excluded:
+// they are long-lived and a timeout would kill the stream before the background
+// task finishes, freezing the UI with no completion event.
+const requestTimeout = 120 * time.Second
+
 // Mount wires all routes.
 func Mount(r chi.Router, d *Deps) {
-	r.Get("/", d.handleIndex)
-	r.Get("/features", d.handleFeatures)
-	r.Get("/sitemap.xml", d.handleSitemap)
-	r.Get("/robots.txt", d.handleRobots)
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
+	timeout := middleware.Timeout(requestTimeout)
+
+	// Page routes: standard request timeout.
+	r.Group(func(r chi.Router) {
+		r.Use(timeout)
+		r.Get("/", d.handleIndex)
+		r.Get("/features", d.handleFeatures)
+		r.Get("/sitemap.xml", d.handleSitemap)
+		r.Get("/robots.txt", d.handleRobots)
+		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
+	})
 
 	r.Route("/api", func(r chi.Router) {
-		r.Post("/search", d.handlePostSearch)
-		r.Post("/analyze-gaps", d.handlePostAnalyzeGaps)
-		r.Post("/download-gap-papers/{taskId}", d.handlePostDownloadGapPapers)
+		// SSE streaming endpoints: long-lived, must NOT have a request timeout.
+		// middleware.Timeout cancels r.Context() after the deadline, which would
+		// terminate the progress stream mid-task (the download keeps running on
+		// context.Background but the client never receives the completion event).
 		r.Get("/progress/{taskId}", d.handleProgress)
 		r.Get("/gap-progress/{taskId}", d.handleGapProgress)
-		r.Get("/papers/{taskId}", d.handleListPapers)
-		r.Get("/metadata/{taskId}", d.handleMetadata)
-		r.Get("/download/{taskId}/{type}", d.handleDownloadType)
-		r.Get("/preview/{taskId}/{filename}", d.handlePreview)
-		r.Get("/export/{taskId}/{format}", d.handleExport)
-		r.Get("/gap-results/{taskId}", d.handleGapResults)
-		r.Get("/gap-report/{taskId}", d.handleGapReport)
-		r.Get("/suggest", d.handleSuggest)
-		r.Get("/related-papers/{doi}", d.handleRelatedPapers)
+
+		// Everything else: standard request timeout.
+		r.Group(func(r chi.Router) {
+			r.Use(timeout)
+			r.Post("/search", d.handlePostSearch)
+			r.Post("/analyze-gaps", d.handlePostAnalyzeGaps)
+			r.Post("/download-gap-papers/{taskId}", d.handlePostDownloadGapPapers)
+			r.Get("/papers/{taskId}", d.handleListPapers)
+			r.Get("/metadata/{taskId}", d.handleMetadata)
+			r.Get("/download/{taskId}/{type}", d.handleDownloadType)
+			r.Get("/preview/{taskId}/{filename}", d.handlePreview)
+			r.Get("/export/{taskId}/{format}", d.handleExport)
+			r.Get("/gap-results/{taskId}", d.handleGapResults)
+			r.Get("/gap-report/{taskId}", d.handleGapReport)
+			r.Get("/suggest", d.handleSuggest)
+			r.Get("/related-papers/{doi}", d.handleRelatedPapers)
+		})
 	})
 }
 

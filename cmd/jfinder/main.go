@@ -63,7 +63,8 @@ func main() {
 	r.Use(securityHeaders)
 	r.Use(middleware.Compress(5, "text/html", "text/css", "application/json", "text/plain", "application/xml", "image/svg+xml", "application/javascript", "text/markdown"))
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(120 * time.Second))
+	// NOTE: the request timeout is applied per-route in web.Mount, not globally,
+	// so the long-lived SSE progress endpoints are not cut off mid-stream.
 
 	// Static files
 	fs := http.FileServer(http.Dir("static"))
